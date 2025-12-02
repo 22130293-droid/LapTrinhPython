@@ -1,3 +1,13 @@
+Đảm bảo bạn đã cài đặt Python 3.x trên hệ thống.
+
+1. **Clone Repository:**
+   ```bash
+   git clone [https://github.com/22130293-droid/LapTrinhPython.git](https://github.com/22130293-droid/LapTrinhPython.git)
+   cd LapTrinhPython
+2.Cài đặt Thư viện:
+pip install -r requirements.txt
+
+3.Phân công:
 Thành viên 1
 AI Data Specialist
 - Tiền xử lý dữ liệu MovieLens (Clean data).
