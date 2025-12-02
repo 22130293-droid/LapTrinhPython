@@ -1,0 +1,13 @@
+# Virtual Environment
+venv/
+env/
+
+# IDE files (PyCharm)
+.idea/
+
+# Compiled files
+__pycache__/
+*.pyc
+
+# Dataset lớn
+# large_dataset.csv
