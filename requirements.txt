@@ -1,0 +1,10 @@
+# Thư viện xử lý dữ liệu & AI (Thành viên 1)
+pandas
+scikit-learn
+numpy
+
+# Thư viện Frontend & Web (Thành viên 3)
+streamlit
+
+# Thư viện Voice AI (Thành viên 2)
+openai-whisper
