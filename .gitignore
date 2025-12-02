@@ -11,3 +11,5 @@ __pycache__/
 
 # Dataset lớn
 # large_dataset.csv
+# Data Cache files
+data/cleaned_data.csv
