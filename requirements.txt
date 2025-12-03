@@ -5,6 +5,7 @@ numpy
 
 # Thư viện Frontend & Web (Thành viên 3)
 streamlit
+requests
 
 # Thư viện Voice AI (Thành viên 2)
 openai-whisper
