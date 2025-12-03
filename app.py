@@ -2,7 +2,9 @@ import streamlit as st
 import pandas as pd
 import os
 import random
-
+# --- BỔ SUNG IMPORTS TỪ MODULE AI CỦA THÀNH VIÊN 1 ---
+from movie_recommender_ai_module.data_processor import load_data
+from movie_recommender_ai_module.recommender import ContentBasedRecommender
 # --- 1. CẤU HÌNH & HẰNG SỐ ---
 st.set_page_config(page_title="Cinema AI System", page_icon="🍿", layout="wide")
 
@@ -31,45 +33,65 @@ class Movie:
         self.poster = poster
         self.price = price
 
-# --- 3. LỚP XỬ LÝ DỮ LIỆU (SERVICE) ---
+
+# Helper function: Dùng cache để model chỉ train 1 lần khi ứng dụng khởi động (Tối ưu hiệu suất)
+@st.cache_resource
+def get_recommender_model():
+    """Tải dữ liệu đã merge và huấn luyện mô hình AI (Chỉ chạy 1 lần)."""
+    # Hàm load_data đã tự động kiểm tra cache (cleaned_data.csv) và merge 3 file
+    df_movies = load_data()
+    if not df_movies.empty:
+        # Khởi tạo mô hình ContentBasedRecommender
+        recommender = ContentBasedRecommender(df_movies)
+        return recommender, df_movies
+    return None, pd.DataFrame()
+
+
+# --- 3. LỚP XỬ LÝ DỮ LIỆU & DỊCH VỤ (SERVICE) ---
 class CinemaService:
     def __init__(self):
         self.movies = []
         self.showtimes = {}
         self.booked_seats_db = {}
-        self.load_movies_from_csv()
-        self.load_or_build_virtual_backend()
 
-    def load_movies_from_csv(self):
-        if os.path.exists(FILE_MOVIES):
-            try:
-                df = pd.read_csv(FILE_MOVIES)
-                for index, row in df.head(30).iterrows():
-                    genres = str(row['genres']).replace('|', ', ')
-                    random_price = random.choice([90000, 105000, 120000, 150000])
-                    random_duration = f"{random.randint(90, 160)} phút"
-                    random_rating = random.choice(["P", "K", "C13", "C16", "C18"])
-                    
-                    safe_title = str(row['title']).split('(')[0].strip().replace(' ', '+')
-                    poster_url = f"https://placehold.co/400x600?text={safe_title}"
+        # Tải mô hình đã được cache và DataFrame đã xử lý
+        self.recommender, df_movies = get_recommender_model()
+        self.load_movies_for_frontend(df_movies)  # Populate Movie objects từ DataFrame đã xử lý
+        self.load_or_build_virtual_backend()  # Logic lịch chiếu và ghế ảo (Giữ nguyên)
 
-                    movie = Movie(
-                        id=row['movieId'],
-                        title=row['title'],
-                        genre=genres,
-                        duration=random_duration,
-                        rating=random_rating,
-                        poster=poster_url,
-                        price=random_price
-                    )
-                    self.movies.append(movie)
-            except Exception as e:
-                st.error(f"Lỗi đọc CSV: {e}")
-        
+    def load_movies_for_frontend(self, df):
+        """Sử dụng DataFrame đã được merge/xử lý (có ratings, tags) để populate các đối tượng Movie."""
+        if not df.empty:
+            # Chỉ hiển thị 30 phim hàng đầu trên trang chủ
+            for index, row in df.head(30).iterrows():
+                # LẤY DỮ LIỆU THẬT: genres và average_rating/rating_count
+                genres = str(row['genres']).replace('|', ', ')
+                rating_display = f"⭐ {row['average_rating']:.1f} ({row['rating_count']} votes)"  # Hiển thị rating thật
+
+                # Các thông tin khác vẫn dùng ảo vì không có trong dataset MovieLens
+                random_price = random.choice([90000, 105000, 120000, 150000])
+                random_duration = f"{random.randint(90, 160)} phút"
+
+                # Tạo URL Poster động
+                safe_title = str(row['title']).split('(')[0].strip().replace(' ', '+')
+                poster_url = f"https://placehold.co/400x600?text={safe_title}"
+
+                movie = Movie(
+                    id=row['movieId'],
+                    title=row['title'],
+                    genre=genres,
+                    duration=random_duration,
+                    rating=rating_display,  # Dùng rating thật đã được merge
+                    poster=poster_url,
+                    price=random_price
+                )
+                self.movies.append(movie)
+
         if not self.movies:
             self.movies = [Movie(1, "Phim Demo", "Hành động", "120p", "C18", POSTER_PLACEHOLDER, 100000)]
 
     def load_or_build_virtual_backend(self):
+        # (Giữ nguyên logic lịch chiếu và ghế ảo của TV2)
         self.showtimes = {
             "Hôm nay": ["09:30", "11:00", "14:15", "19:00", "21:30", "23:00"],
             "Ngày mai": ["10:00", "13:00", "18:00", "20:00"],
@@ -80,14 +102,23 @@ class CinemaService:
             key = f"{self.movies[0].id}_Hôm nay_19:00"
             self.booked_seats_db[key] = ["A3", "A4", "A5", "C4", "C5"]
 
-    def get_all_movies(self): return self.movies
-    def get_movie_by_id(self, id): 
-        for m in self.movies: 
+    def get_all_movies(self):
+        return self.movies
+
+    def get_movie_by_id(self, id):
+        for m in self.movies:
             if m.id == id: return m
         return None
+
     def get_seat_layout(self, m_id, d, t):
         booked = self.booked_seats_db.get(f"{m_id}_{d}_{t}", [])
-        return [[1 if f"{chr(65+r)}{c+1}" in booked else 0 for c in range(8)] for r in range(6)]
+        return [[1 if f"{chr(65 + r)}{c + 1}" in booked else 0 for c in range(8)] for r in range(6)]
+
+    def get_recommendations(self, title):
+        """Hàm gọi thuật toán gợi ý từ module AI của TV1 (đã được cache)."""
+        if self.recommender:
+            return self.recommender.get_recommendations(title)
+        return []
 
 # --- 4. LỚP GIAO DIỆN (VIEW) ---
 class CinemaAppUI:
