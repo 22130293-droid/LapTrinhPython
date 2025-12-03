@@ -233,10 +233,38 @@ class CinemaAppUI:
     def render_home(self):
         self.render_header()
         self.render_event_slideshow()
-        
+
         c1, c2 = st.columns([3, 1])
         c1.subheader("🔥 PHIM ĐANG CHIẾU")
-        if c2.button("🎙️ Voice Search"): st.toast("Đang lắng nghe...")
+
+        # --- CHỨC NĂNG TÌM KIẾM/GỢI Ý ---
+        # Hiển thị thanh nhập liệu ở cột nhỏ (c2)
+        search_query = c2.text_input("Tìm kiếm/Gợi ý phim:", placeholder="Nhập tên phim...", key="manual_search_input",
+                                     label_visibility="collapsed")
+
+        # 1. Nếu người dùng nhập liệu, tiến hành gọi AI
+        if search_query:
+
+            # Gọi hàm get_recommendations đã được tích hợp (từ module của Thành viên 1)
+            recommended_titles = self.service.get_recommendations(search_query)
+
+            # 2. Hiển thị Kết quả Gợi ý (Ở cột lớn c1)
+            if recommended_titles and not recommended_titles[0].startswith("Xin lỗi,"):
+
+                # Tiêu đề gợi ý
+                c1.markdown("#### ✨ Gợi ý 10 phim tương tự:")
+
+                # Hiển thị danh sách kết quả
+                for i, title in enumerate(recommended_titles):
+                    c1.write(f"**{i + 1}.** {title}")
+
+                c1.markdown("---")  # Dấu phân cách
+
+            else:
+                # Xử lý lỗi không tìm thấy phim
+                c1.warning(recommended_titles[0])
+
+                # --- END CHỨC NĂNG TÌM KIẾM/GỢI Ý ---
 
         movies = self.service.get_all_movies()
         items_per_slide = 5 
