@@ -13,6 +13,7 @@ AI Data Specialist
 - Tiền xử lý dữ liệu MovieLens (Clean data).
 - Xây dựng thuật toán Recommender System (Content-based).
 - Viết hàm tìm kiếm phim theo từ khóa/thể loại.
+- Tích hợp module gợi ý phim vào ứng dụng (app.py)
 Thành viên 2
 Backend & Voice Engineer
 - Tích hợp Whisper AI để xử lý âm thanh.
@@ -26,6 +27,6 @@ Frontend Developer
    + Run: streamlit run app.py
 )
 - Thiết kế UI sơ đồ ghế ngồi (Grid layout).
-- Tích hợp code của TV1 và TV2 vào ứng dụng chính (app.py).
+- Tích hợp code của TV2 vào ứng dụng chính (app.py).
 - Tìm kiếm hình ảnh/poster phim để làm đẹp giao diện.
 
