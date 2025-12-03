@@ -20,7 +20,11 @@ Backend & Voice Engineer
 - Viết các hàm logic Backend: load_data(), save_booking(), check_availability().
 Thành viên 3
 Frontend Developer 
-- Xây dựng giao diện Web bằng Streamlit.
+- Xây dựng giao diện Web bằng Streamlit.(
+   + Tạo môi trường ảo mới: python -m venv venv
+   + Kích hoạt môi trường: .\venv\Scripts\activate
+   + Run: streamlit run app.py
+)
 - Thiết kế UI sơ đồ ghế ngồi (Grid layout).
 - Tích hợp code của TV1 và TV2 vào ứng dụng chính (app.py).
 - Tìm kiếm hình ảnh/poster phim để làm đẹp giao diện.
