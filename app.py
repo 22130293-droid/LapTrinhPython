@@ -5,6 +5,7 @@ import random
 # --- BỔ SUNG IMPORTS TỪ MODULE AI CỦA THÀNH VIÊN 1 ---
 from movie_recommender_ai_module.data_processor import load_data
 from movie_recommender_ai_module.recommender import ContentBasedRecommender
+
 # --- 1. CẤU HÌNH & HẰNG SỐ ---
 st.set_page_config(page_title="Cinema AI System", page_icon="🍿", layout="wide")
 
@@ -21,6 +22,7 @@ EVENT_BANNERS = [
     "https://media.lottecinemavn.com/Media/WebAdmin/4b2559e836174a7b973909774640498b.jpg",
     "https://media.lottecinemavn.com/Media/WebAdmin/b689028882744782928340d8544df201.jpg"
 ]
+
 
 # --- 2. LỚP ĐỐI TƯỢNG (MODEL) ---
 class Movie:
@@ -120,12 +122,13 @@ class CinemaService:
             return self.recommender.get_recommendations(title)
         return []
 
+
 # --- 4. LỚP GIAO DIỆN (VIEW) ---
 class CinemaAppUI:
     def __init__(self):
         self.service = CinemaService()
         self.inject_custom_css()
-        
+
         # State Management
         if 'page' not in st.session_state: st.session_state['page'] = 'home'
         if 'movie_index' not in st.session_state: st.session_state['movie_index'] = 0
@@ -141,7 +144,7 @@ class CinemaAppUI:
             .stApp { background-color: #000000; color: #FFFFFF; font-family: 'Helvetica', sans-serif; }
             h1, h2, h3 { color: #FFFFFF !important; }
             p, label, span { color: #E0E0E0 !important; }
-            
+
             /* 2. HEADER */
             .header-container {
                 display: flex; justify-content: space-between; align-items: center;
@@ -169,7 +172,7 @@ class CinemaAppUI:
             /* 4. MOVIE CARD */
             .movie-title { color: #FFD700 !important; font-size: 16px; font-weight: bold; margin-top: 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
             .movie-meta { color: #BBB !important; font-size: 12px; }
-            
+
             /* 5. BUTTONS STANDARD */
             div.stButton > button {
                 background-color: #E50914; color: white; border: none; font-weight: bold; transition: 0.3s;
@@ -229,72 +232,68 @@ class CinemaAppUI:
             </div>
         """, unsafe_allow_html=True)
 
-        # --- TRONG HÀM render_home(self): ---
+    # --- KHẮC PHỤC: HÀM RENDER HOME (ĐÃ ĐƯỢC ĐẶT TRONG CLASS) ---
+    def render_home(self):
+        self.render_header()
+        self.render_event_slideshow()
 
-        def render_home(self):
-            self.render_header()
-            self.render_event_slideshow()
+        c1, c2 = st.columns([3, 1])
+        c1.subheader("🔥 PHIM ĐANG CHIẾU")
 
-            c1, c2 = st.columns([3, 1])
-            c1.subheader("🔥 PHIM ĐANG CHIẾU")
+        # --- CHỨC NĂNG TÌM KIẾM/GỢI Ý (ĐÃ THÊM ICON MICRO) ---
+        # Chia cột c2 thành hai phần: Input và Icon
+        col_input, col_mic = c2.columns([4, 1])
 
-            # --- CHỨC NĂNG TÌM KIẾM/GỢI Ý (ĐÃ THÊM ICON MICRO) ---
-            # Chia cột c2 thành hai phần: Input và Icon
-            col_input, col_mic = c2.columns([4, 1])
+        # 1. Thanh nhập liệu (chiếm 80% cột c2)
+        search_query = col_input.text_input(
+            "Tìm kiếm/Gợi ý phim:",
+            placeholder="Nhập tên phim...",
+            key="manual_search_input",
+            label_visibility="collapsed"
+        )
 
-            # 1. Thanh nhập liệu (chiếm 80% cột c2)
-            search_query = col_input.text_input(
-                "Tìm kiếm/Gợi ý phim:",
-                placeholder="Nhập tên phim...",
-                key="manual_search_input",
-                label_visibility="collapsed"
-            )
+        # 2. Icon Micro (chiếm 20% cột c2)
+        with col_mic:
+            st.markdown("<div style='height: 20px;'></div>", unsafe_allow_html=True)  # Spacer căn icon
+            # Thêm button/icon micro. Khi TV2 tích hợp, họ sẽ gắn logic Whisper vào đây.
+            if st.button("🎙️", key="mic_icon", help="Kích hoạt tìm kiếm giọng nói"):
+                st.toast("Chức năng Voice Search đang được kích hoạt...")
+                # Nếu có input từ giọng nói (TV2), bạn sẽ cập nhật search_query ở đây.
 
-            # 2. Icon Micro (chiếm 20% cột c2)
-            with col_mic:
-                st.markdown("<div style='height: 20px;'></div>", unsafe_allow_html=True)  # Spacer căn icon
-                # Thêm button/icon micro. Khi TV2 tích hợp, họ sẽ gắn logic Whisper vào đây.
-                if st.button("🎙️", key="mic_icon", help="Kích hoạt tìm kiếm giọng nói"):
-                    st.toast("Chức năng Voice Search đang được kích hoạt...")
-                    # Nếu có input từ giọng nói (TV2), bạn sẽ cập nhật search_query ở đây.
+        # --- LOGIC GỌI AI VÀ HIỂN THỊ KẾT QUẢ (GIỮ NGUYÊN) ---
+        if search_query:
 
-            # --- LOGIC GỌI AI VÀ HIỂN THỊ KẾT QUẢ (GIỮ NGUYÊN) ---
-            if search_query:
+            # Gọi hàm get_recommendations đã được tích hợp (từ module của Thành viên 1)
+            recommended_titles = self.service.get_recommendations(search_query)
 
-                # Gọi hàm get_recommendations đã được tích hợp (từ module của Thành viên 1)
-                recommended_titles = self.service.get_recommendations(search_query)
+            # 2. Hiển thị Kết quả Gợi ý (Ở cột lớn c1)
+            if recommended_titles and not recommended_titles[0].startswith("Xin lỗi,"):
 
-                # 2. Hiển thị Kết quả Gợi ý (Ở cột lớn c1)
-                if recommended_titles and not recommended_titles[0].startswith("Xin lỗi,"):
+                # Tiêu đề gợi ý
+                c1.markdown("#### ✨ Gợi ý 10 phim tương tự:")
 
-                    # Tiêu đề gợi ý
-                    c1.markdown("#### ✨ Gợi ý 10 phim tương tự:")
+                # Hiển thị danh sách kết quả
+                for i, title in enumerate(recommended_titles):
+                    c1.write(f"**{i + 1}.** {title}")
 
-                    # Hiển thị danh sách kết quả
-                    for i, title in enumerate(recommended_titles):
-                        c1.write(f"**{i + 1}.** {title}")
+                c1.markdown("---")  # Dấu phân cách
 
-                    c1.markdown("---")  # Dấu phân cách
+            else:
+                # Xử lý lỗi không tìm thấy phim
+                c1.warning(recommended_titles[0])
 
-                else:
-                    # Xử lý lỗi không tìm thấy phim
-                    c1.warning(recommended_titles[0])
-
-
-
-
-                # --- END CHỨC NĂNG TÌM KIẾM/GỢI Ý ---
+        # --- END CHỨC NĂNG TÌM KIẾM/GỢI Ý ---
 
         movies = self.service.get_all_movies()
-        items_per_slide = 5 
+        items_per_slide = 5
         total_movies = len(movies)
-        
+
         # Chia 3 cột: [Nút Trái] -- [Danh sách Phim] -- [Nút Phải]
         col_prev, col_display, col_next = st.columns([0.5, 10, 0.5])
-        
+
         # Nút Trái
         with col_prev:
-            st.markdown("<div style='height: 180px;'></div>", unsafe_allow_html=True) # Spacer đẩy nút xuống giữa
+            st.markdown("<div style='height: 180px;'></div>", unsafe_allow_html=True)  # Spacer đẩy nút xuống giữa
             if st.session_state['movie_index'] > 0:
                 if st.button("◀", key="prev_btn"):
                     st.session_state['movie_index'] = max(0, st.session_state['movie_index'] - items_per_slide)
@@ -305,12 +304,12 @@ class CinemaAppUI:
             start_idx = st.session_state['movie_index']
             end_idx = min(start_idx + items_per_slide, total_movies)
             current_movies = movies[start_idx:end_idx]
-            
+
             cols = st.columns(items_per_slide)
             for idx, movie in enumerate(current_movies):
                 with cols[idx]:
-                    if movie is None: continue # Fix lỗi NoneType
-                    
+                    if movie is None: continue  # Fix lỗi NoneType
+
                     with st.container():
                         poster = movie.poster if movie.poster else POSTER_PLACEHOLDER
                         st.markdown(f"""
@@ -318,35 +317,37 @@ class CinemaAppUI:
                                 <img src="{poster}" style="width: 100%; aspect-ratio: 2/3; object-fit: cover;">
                             </div>
                         """, unsafe_allow_html=True)
-                        st.markdown(f"<div class='movie-title' title='{movie.title}'>{movie.title}</div>", unsafe_allow_html=True)
+                        st.markdown(f"<div class='movie-title' title='{movie.title}'>{movie.title}</div>",
+                                    unsafe_allow_html=True)
                         st.markdown(f"<div class='movie-meta'>{movie.genre}</div>", unsafe_allow_html=True)
-                        st.markdown(f"<div class='movie-meta'>⭐ {movie.rating} | ⏱ {movie.duration}</div>", unsafe_allow_html=True)
-                        
-                        st.write("") 
+                        st.markdown(f"<div class='movie-meta'>⭐ {movie.rating} | ⏱ {movie.duration}</div>",
+                                    unsafe_allow_html=True)
+
+                        st.write("")
                         if st.button("ĐẶT VÉ", key=f"btn_{movie.id}"):
                             st.session_state['selected_movie_id'] = movie.id
                             st.session_state['selected_seats'] = []
                             st.session_state['page'] = 'booking'
                             st.rerun()
-            
+
             st.caption(f"Hiển thị {start_idx + 1} - {end_idx} trên tổng số {total_movies} phim")
 
         # Nút Phải
         with col_next:
-            st.markdown("<div style='height: 180px;'></div>", unsafe_allow_html=True) # Spacer đẩy nút xuống giữa
+            st.markdown("<div style='height: 180px;'></div>", unsafe_allow_html=True)  # Spacer đẩy nút xuống giữa
             if end_idx < total_movies:
                 if st.button("▶", key="next_btn"):
                     st.session_state['movie_index'] += items_per_slide
                     st.rerun()
 
-    # --- HÀM RENDER BOOKING (ĐÃ TÁCH BIỆT) ---
+    # --- HÀM RENDER BOOKING (ĐÃ ĐƯỢC ĐẶT TRONG CLASS) ---
     def render_booking(self):
         self.render_header()
         movie = self.service.get_movie_by_id(st.session_state['selected_movie_id'])
-        
+
         if not movie:
             st.error("Không tìm thấy phim!")
-            if st.button("Quay lại"): 
+            if st.button("Quay lại"):
                 st.session_state['page'] = 'home'
                 st.rerun()
             return
@@ -357,7 +358,7 @@ class CinemaAppUI:
 
         st.markdown("---")
         col_L, col_R = st.columns([1.2, 2.5])
-        
+
         # CỘT TRÁI
         with col_L:
             c1, c2 = st.columns([1, 1.5])
@@ -366,25 +367,25 @@ class CinemaAppUI:
                 st.markdown(f"### {movie.title}")
                 st.caption(f"Thể loại: {movie.genre}")
                 st.caption(f"Thời lượng: {movie.duration}")
-            
+
             st.markdown("---")
             st.write("📅 **NGÀY & GIỜ CHIẾU**")
-            
+
             days = list(self.service.showtimes.keys())
             s_day = st.selectbox("Ngày:", days, label_visibility="collapsed")
             st.session_state['selected_date'] = s_day
-            
+
             times = self.service.showtimes.get(s_day, [])
             s_time = st.radio("Giờ:", times, horizontal=True)
             st.session_state['selected_time'] = s_time
-            
+
             st.markdown("<br><div class='bill-box'>", unsafe_allow_html=True)
             st.markdown("#### 🧾 HÓA ĐƠN")
             count = len(st.session_state['selected_seats'])
             total = count * movie.price
             st.write(f"Vé: {count} x {movie.price:,.0f} đ")
             st.markdown(f"<h3 style='color:#E50914 !important'>TỔNG: {total:,.0f} đ</h3>", unsafe_allow_html=True)
-            
+
             if count > 0:
                 if st.button("THANH TOÁN NGAY", type="primary"):
                     st.balloons()
@@ -397,12 +398,13 @@ class CinemaAppUI:
         with col_R:
             st.subheader("SƠ ĐỒ GHẾ NGỒI")
             st.markdown("<div class='screen'>MÀN HÌNH</div><br>", unsafe_allow_html=True)
-            layout = self.service.get_seat_layout(movie.id, st.session_state['selected_date'], st.session_state['selected_time'])
-            
+            layout = self.service.get_seat_layout(movie.id, st.session_state['selected_date'],
+                                                  st.session_state['selected_time'])
+
             for r, row in enumerate(layout):
                 cols = st.columns(8)
                 for c, status in enumerate(row):
-                    seat_id = f"{chr(65+r)}{c+1}"
+                    seat_id = f"{chr(65 + r)}{c + 1}"
                     with cols[c]:
                         if status == 1:
                             st.button("❌", key=seat_id, disabled=True)
@@ -421,8 +423,11 @@ class CinemaAppUI:
             xc3.markdown("✅ **Đang chọn**")
 
     def run(self):
-        if st.session_state['page'] == 'home': self.render_home()
-        elif st.session_state['page'] == 'booking': self.render_booking()
+        if st.session_state['page'] == 'home':
+            self.render_home()
+        elif st.session_state['page'] == 'booking':
+            self.render_booking()
+
 
 if __name__ == "__main__":
     app = CinemaAppUI()
