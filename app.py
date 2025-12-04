@@ -229,40 +229,59 @@ class CinemaAppUI:
             </div>
         """, unsafe_allow_html=True)
 
-    # --- HÀM RENDER HOME (ĐÃ SỬA LỖI TÁCH BIỆT) ---
-    def render_home(self):
-        self.render_header()
-        self.render_event_slideshow()
+        # --- TRONG HÀM render_home(self): ---
 
-        c1, c2 = st.columns([3, 1])
-        c1.subheader("🔥 PHIM ĐANG CHIẾU")
+        def render_home(self):
+            self.render_header()
+            self.render_event_slideshow()
 
-        # --- CHỨC NĂNG TÌM KIẾM/GỢI Ý ---
-        # Hiển thị thanh nhập liệu ở cột nhỏ (c2)
-        search_query = c2.text_input("Tìm kiếm/Gợi ý phim:", placeholder="Nhập tên phim...", key="manual_search_input",
-                                     label_visibility="collapsed")
+            c1, c2 = st.columns([3, 1])
+            c1.subheader("🔥 PHIM ĐANG CHIẾU")
 
-        # 1. Nếu người dùng nhập liệu, tiến hành gọi AI
-        if search_query:
+            # --- CHỨC NĂNG TÌM KIẾM/GỢI Ý (ĐÃ THÊM ICON MICRO) ---
+            # Chia cột c2 thành hai phần: Input và Icon
+            col_input, col_mic = c2.columns([4, 1])
 
-            # Gọi hàm get_recommendations đã được tích hợp (từ module của Thành viên 1)
-            recommended_titles = self.service.get_recommendations(search_query)
+            # 1. Thanh nhập liệu (chiếm 80% cột c2)
+            search_query = col_input.text_input(
+                "Tìm kiếm/Gợi ý phim:",
+                placeholder="Nhập tên phim...",
+                key="manual_search_input",
+                label_visibility="collapsed"
+            )
 
-            # 2. Hiển thị Kết quả Gợi ý (Ở cột lớn c1)
-            if recommended_titles and not recommended_titles[0].startswith("Xin lỗi,"):
+            # 2. Icon Micro (chiếm 20% cột c2)
+            with col_mic:
+                st.markdown("<div style='height: 20px;'></div>", unsafe_allow_html=True)  # Spacer căn icon
+                # Thêm button/icon micro. Khi TV2 tích hợp, họ sẽ gắn logic Whisper vào đây.
+                if st.button("🎙️", key="mic_icon", help="Kích hoạt tìm kiếm giọng nói"):
+                    st.toast("Chức năng Voice Search đang được kích hoạt...")
+                    # Nếu có input từ giọng nói (TV2), bạn sẽ cập nhật search_query ở đây.
 
-                # Tiêu đề gợi ý
-                c1.markdown("#### ✨ Gợi ý 10 phim tương tự:")
+            # --- LOGIC GỌI AI VÀ HIỂN THỊ KẾT QUẢ (GIỮ NGUYÊN) ---
+            if search_query:
 
-                # Hiển thị danh sách kết quả
-                for i, title in enumerate(recommended_titles):
-                    c1.write(f"**{i + 1}.** {title}")
+                # Gọi hàm get_recommendations đã được tích hợp (từ module của Thành viên 1)
+                recommended_titles = self.service.get_recommendations(search_query)
 
-                c1.markdown("---")  # Dấu phân cách
+                # 2. Hiển thị Kết quả Gợi ý (Ở cột lớn c1)
+                if recommended_titles and not recommended_titles[0].startswith("Xin lỗi,"):
 
-            else:
-                # Xử lý lỗi không tìm thấy phim
-                c1.warning(recommended_titles[0])
+                    # Tiêu đề gợi ý
+                    c1.markdown("#### ✨ Gợi ý 10 phim tương tự:")
+
+                    # Hiển thị danh sách kết quả
+                    for i, title in enumerate(recommended_titles):
+                        c1.write(f"**{i + 1}.** {title}")
+
+                    c1.markdown("---")  # Dấu phân cách
+
+                else:
+                    # Xử lý lỗi không tìm thấy phim
+                    c1.warning(recommended_titles[0])
+
+
+
 
                 # --- END CHỨC NĂNG TÌM KIẾM/GỢI Ý ---
 
