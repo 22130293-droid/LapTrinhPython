@@ -5,7 +5,7 @@ import random
 # --- BỔ SUNG IMPORTS TỪ MODULE AI CỦA THÀNH VIÊN 1 ---
 from movie_recommender_ai_module.data_processor import load_data
 from movie_recommender_ai_module.recommender import ContentBasedRecommender
-
+from backend_&voice_search_ai_module.voice_controller import VoiceSearchController
 # --- 1. CẤU HÌNH & HẰNG SỐ ---
 st.set_page_config(page_title="Cinema AI System", page_icon="🍿", layout="wide")
 
@@ -128,6 +128,8 @@ class CinemaAppUI:
     def __init__(self):
         self.service = CinemaService()
         self.inject_custom_css()
+        self.voice_controller = VoiceSearchController()
+
 
         # State Management
         if 'page' not in st.session_state: st.session_state['page'] = 'home'
@@ -136,6 +138,8 @@ class CinemaAppUI:
         if 'selected_seats' not in st.session_state: st.session_state['selected_seats'] = []
         if 'selected_date' not in st.session_state: st.session_state['selected_date'] = "Hôm nay"
         if 'selected_time' not in st.session_state: st.session_state['selected_time'] = "19:00"
+        if "voice_query" not in st.session_state:st.session_state["voice_query"] = ""
+        if "fill_from_voice" not in st.session_state:st.session_state["fill_from_voice"] = False
 
     def inject_custom_css(self):
         st.markdown("""
@@ -236,7 +240,13 @@ class CinemaAppUI:
     def render_home(self):
         self.render_header()
         self.render_event_slideshow()
-
+        
+        #Hiển thị thanh nhận diện giọng nói
+        listening_placeholder = st.empty()
+        if st.session_state.get("fill_from_voice"):
+            st.session_state["manual_search_input"] = st.session_state["voice_query"]
+            st.session_state["fill_from_voice"] = False
+            
         c1, c2 = st.columns([3, 1])
         c1.subheader("🔥 PHIM ĐANG CHIẾU")
 
@@ -254,11 +264,18 @@ class CinemaAppUI:
 
         # 2. Icon Micro (chiếm 20% cột c2)
         with col_mic:
-            st.markdown("<div style='height: 20px;'></div>", unsafe_allow_html=True)  # Spacer căn icon
-            # Thêm button/icon micro. Khi TV2 tích hợp, họ sẽ gắn logic Whisper vào đây.
-            if st.button("🎙️", key="mic_icon", help="Kích hoạt tìm kiếm giọng nói"):
-                st.toast("Chức năng Voice Search đang được kích hoạt...")
-                # Nếu có input từ giọng nói (TV2), bạn sẽ cập nhật search_query ở đây.
+            if st.button("🎙️", key="mic_icon"):
+                listening_placeholder.info("🎧 Đang nghe giọng nói...")
+                voice_text, error = self.voice_controller.get_voice_query()
+                listening_placeholder.empty() 
+
+                if error:
+                    listening_placeholder.warning(f" {error}")
+                    
+                else:
+                    st.session_state["voice_query"] = voice_text
+                    st.session_state["fill_from_voice"] = True
+                    st.rerun()
 
         # --- LOGIC GỌI AI VÀ HIỂN THỊ KẾT QUẢ (GIỮ NGUYÊN) ---
         if search_query:
