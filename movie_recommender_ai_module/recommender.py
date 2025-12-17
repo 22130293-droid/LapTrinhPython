@@ -83,8 +83,11 @@ class ContentBasedRecommender:
 
         try:
             # 1. Tìm phim gốc (Input)
-            safe_title = re.escape(title)
-            match_df = self.df_movies[self.df_movies['title'].str.contains(safe_title, case=False, na=False)]
+            mask = (
+                    self.df_movies['title'].str.contains(title, case=False, na=False) |
+                    self.df_movies['tags_combined'].str.contains(title, case=False, na=False)
+            )
+            match_df = self.df_movies[mask]
 
             if match_df.empty:
                 return [f"Xin lỗi, không tìm thấy phim nào chứa từ khóa '{title}'"]
