@@ -1,5 +1,3 @@
-# movie_recommender_ai_module/voice_search/voice_controller.py
-
 from .speech_to_text import SpeechToText
 
 
@@ -23,3 +21,4 @@ class VoiceSearchController:
             return None, " Lỗi micro"
 
         return result, None
+
