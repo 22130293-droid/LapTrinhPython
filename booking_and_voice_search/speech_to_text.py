@@ -1,5 +1,3 @@
-# movie_recommender_ai_module/voice_search/speech_to_text.py
-
 import speech_recognition as sr
 
 
@@ -35,3 +33,4 @@ class SpeechToText:
 
             except Exception as e:
                 return f"ERROR: {str(e)}"
+
