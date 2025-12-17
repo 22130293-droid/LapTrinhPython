@@ -1,17 +1,23 @@
 import streamlit as st
+import time as et
 import pandas as pd
 import os
 import random
 # --- BỔ SUNG IMPORTS TỪ MODULE AI CỦA THÀNH VIÊN 1 ---
 from movie_recommender_ai_module.data_processor import load_data
 from movie_recommender_ai_module.recommender import ContentBasedRecommender
-from backend_&voice_search_ai_module.voice_controller import VoiceSearchController
+
+# --- BOOKING VÀ MODULE AI VOICE SEARCH THÀNH VIÊN 2 ---
+from booking_and_voice_search.booking_serveice import check_availability, load_booking_data, save_booking
+from booking_and_voice_search.voice_controller import VoiceSearchController
+
+
 # --- 1. CẤU HÌNH & HẰNG SỐ ---
 st.set_page_config(page_title="Cinema AI System", page_icon="🍿", layout="wide")
 
 # Đường dẫn file
 FILE_MOVIES = os.path.join("data", "movies.csv")
-FILE_SHOWTIMES = os.path.join("backend_module", "data_structure.json")
+FILE_SHOWTIMES = os.path.join("booking_and_voice_search", "data_structure.json")
 
 # Ảnh mặc định
 POSTER_PLACEHOLDER = "https://placehold.co/400x600/png?text=No+Poster&font=roboto"
@@ -113,8 +119,23 @@ class CinemaService:
         return None
 
     def get_seat_layout(self, m_id, d, t):
-        booked = self.booked_seats_db.get(f"{m_id}_{d}_{t}", [])
-        return [[1 if f"{chr(65 + r)}{c + 1}" in booked else 0 for c in range(8)] for r in range(6)]
+        data = load_booking_data()
+        m_id = str(m_id)
+
+        booked = (
+            data.get("movies", {})
+                .get(m_id, {})
+                .get("showtimes", {})
+                .get(d, {})
+                .get(t, {})
+                .get("booked_seats", [])
+        )
+
+        return [
+            [1 if f"{chr(65 + r)}{c + 1}" in booked else 0 for c in range(8)]
+            for r in range(6)
+        ]
+
 
     def get_recommendations(self, title):
         """Hàm gọi thuật toán gợi ý từ module AI của TV1 (đã được cache)."""
@@ -133,13 +154,13 @@ class CinemaAppUI:
 
         # State Management
         if 'page' not in st.session_state: st.session_state['page'] = 'home'
+        if "voice_query" not in st.session_state:st.session_state["voice_query"] = ""
+        if "fill_from_voice" not in st.session_state:st.session_state["fill_from_voice"] = False
         if 'movie_index' not in st.session_state: st.session_state['movie_index'] = 0
         if 'selected_movie_id' not in st.session_state: st.session_state['selected_movie_id'] = None
         if 'selected_seats' not in st.session_state: st.session_state['selected_seats'] = []
         if 'selected_date' not in st.session_state: st.session_state['selected_date'] = "Hôm nay"
         if 'selected_time' not in st.session_state: st.session_state['selected_time'] = "19:00"
-        if "voice_query" not in st.session_state:st.session_state["voice_query"] = ""
-        if "fill_from_voice" not in st.session_state:st.session_state["fill_from_voice"] = False
 
     def inject_custom_css(self):
         st.markdown("""
@@ -237,23 +258,29 @@ class CinemaAppUI:
         """, unsafe_allow_html=True)
 
     # --- KHẮC PHỤC: HÀM RENDER HOME (ĐÃ ĐƯỢC ĐẶT TRONG CLASS) ---
+    
     def render_home(self):
+        
         self.render_header()
         self.render_event_slideshow()
-        
+
         #Hiển thị thanh nhận diện giọng nói
         listening_placeholder = st.empty()
+
         if st.session_state.get("fill_from_voice"):
             st.session_state["manual_search_input"] = st.session_state["voice_query"]
             st.session_state["fill_from_voice"] = False
-            
+
         c1, c2 = st.columns([3, 1])
         c1.subheader("🔥 PHIM ĐANG CHIẾU")
 
         # --- CHỨC NĂNG TÌM KIẾM/GỢI Ý (ĐÃ THÊM ICON MICRO) ---
         # Chia cột c2 thành hai phần: Input và Icon
+          #HÀM ĐỒNG BỘ GIỌNG NÓI → INPUT (PHẢI ĐẶT TRƯỚC text_input)
+      
         col_input, col_mic = c2.columns([4, 1])
-
+        
+      
         # 1. Thanh nhập liệu (chiếm 80% cột c2)
         search_query = col_input.text_input(
             "Tìm kiếm/Gợi ý phim:",
@@ -271,11 +298,12 @@ class CinemaAppUI:
 
                 if error:
                     listening_placeholder.warning(f" {error}")
-                    
                 else:
                     st.session_state["voice_query"] = voice_text
                     st.session_state["fill_from_voice"] = True
                     st.rerun()
+          
+
 
         # --- LOGIC GỌI AI VÀ HIỂN THỊ KẾT QUẢ (GIỮ NGUYÊN) ---
         if search_query:
@@ -405,11 +433,29 @@ class CinemaAppUI:
 
             if count > 0:
                 if st.button("THANH TOÁN NGAY", type="primary"):
+
+                    movie_id = movie.id
+                    date = st.session_state['selected_date']
+                    time = st.session_state['selected_time']
+                    seats = st.session_state['selected_seats']
+
+                    # 1 Kiểm tra ghế
+                    if not check_availability(movie_id, date, time, seats):
+                        st.error(" Một số ghế đã được người khác đặt. Vui lòng chọn lại.")
+                        return
+
+                    # 2 Lưu booking
+                    save_booking(movie_id, date, time, seats)
+
+                    # 3 Reset state
+                    st.session_state['selected_seats'] = []
                     st.balloons()
-                    st.success("Đặt vé thành công!")
-            else:
-                st.info("Vui lòng chọn ghế bên phải")
-            st.markdown("</div>", unsafe_allow_html=True)
+                    st.success("🎉 Đặt vé thành công!")
+                    et.sleep(2)
+                    st.rerun()
+            # else:
+            #     # st.info("Vui lòng chọn ghế bên phải")
+            #     st.markdown("</div>", unsafe_allow_html=True)
 
         # CỘT PHẢI
         with col_R:
