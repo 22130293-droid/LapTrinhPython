@@ -8,4 +8,6 @@ streamlit
 requests
 
 # Thư viện Voice AI (Thành viên 2)
-openai-whisper
+sounddevice
+PyAudio
+SpeechRecognition
