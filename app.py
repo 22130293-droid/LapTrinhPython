@@ -309,23 +309,27 @@ class CinemaAppUI:
         if search_query:
 
             # Gọi hàm get_recommendations đã được tích hợp (từ module của Thành viên 1)
-            recommended_titles = self.service.get_recommendations(search_query)
-
+            recommendations_df = self.service.get_recommendations(search_query)
             # 2. Hiển thị Kết quả Gợi ý (Ở cột lớn c1)
-            if recommended_titles and not recommended_titles[0].startswith("Xin lỗi,"):
+            if isinstance(recommendations_df, pd.DataFrame):                # Tiêu đề gợi ý
+                c1.markdown(f"#### ✨ Top gợi ý cho '{search_query}':")                # Hiển thị danh sách kết quả
+                for _, row in recommendations_df.iterrows():
+                    # Lấy thông tin từ các cột trong DataFrame
+                    r_title = row['title']
+                    # Chuyển Action|Adventure thành Action, Adventure
+                    r_genres = str(row['genres']).replace('|', ', ')
+                    r_rating = row['average_rating']
+                    r_votes = int(row['rating_count'])
 
-                # Tiêu đề gợi ý
-                c1.markdown("#### ✨ Gợi ý 10 phim tương tự:")
-
-                # Hiển thị danh sách kết quả
-                for i, title in enumerate(recommended_titles):
-                    c1.write(f"**{i + 1}.** {title}")
+                    # HIỂN THỊ CHI TIẾT
+                    c1.markdown(f"**{r_title}**")
+                    c1.caption(f"↳ 🎭 {r_genres} | ⭐ {r_rating:.1f}/5 ({r_votes:,} votes)")
 
                 c1.markdown("---")  # Dấu phân cách
 
-            else:
-                # Xử lý lỗi không tìm thấy phim
-                c1.warning(recommended_titles[0])
+
+            elif isinstance(recommendations_df, list) and len(recommendations_df) > 0:
+                c1.warning(recommendations_df[0])
 
         # --- END CHỨC NĂNG TÌM KIẾM/GỢI Ý ---
 

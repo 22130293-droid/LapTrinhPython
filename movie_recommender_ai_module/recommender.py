@@ -40,29 +40,22 @@ class ContentBasedRecommender:
         print(f"Tham số Weighted Rank: C={self.C:.2f}, m={self.m:.0f} votes.")
 
     def _train_model(self):
-        """
-        Huấn luyện model: Sử dụng kết hợp Genres và Tags
-        để tạo ra ma trận tương đồng Content-Based.
-        """
-        print("Đang huấn luyện AI (Content-Based) với Genres và Tags...")
+        print("Đang huấn luyện AI bản nâng cấp...")
 
-        # Tạo cột tính năng bằng cách nối Genres và Tags
+        # CHIẾN THUẬT MỚI: Tăng trọng số cho Tiêu đề (nhân 3 lần) để bắt đúng series phim
         self.df_movies['content_features'] = (
+                (self.df_movies['title'].fillna('') + ' ') * 3 +
                 self.df_movies['genres_clean'].fillna('') + ' ' +
                 self.df_movies['tags_combined'].fillna('')
         )
 
-        # Vector hóa văn bản
-        tfidf = TfidfVectorizer(stop_words='english')
+        # Sử dụng ngram_range=(1, 2) để bắt được các cụm từ như "Toy Story" thay vì chỉ "Toy"
+        tfidf = TfidfVectorizer(stop_words='english', ngram_range=(1, 2))
         tfidf_matrix = tfidf.fit_transform(self.df_movies['content_features'])
 
-        # Tính ma trận tương đồng (Cosine Similarity)
         self.cosine_sim = cosine_similarity(tfidf_matrix, tfidf_matrix)
-
-        # Tạo bảng tra cứu ngược để tìm index từ tên phim
         self.indices = pd.Series(self.df_movies.index, index=self.df_movies['title']).drop_duplicates()
-
-        print("✅ Training xong! Sẵn sàng gợi ý Hybrid.")
+        print("✅ Đã nâng cấp logic nhận diện thương hiệu phim!")
 
     def calculate_wr(self, df):
         """
@@ -81,41 +74,69 @@ class ContentBasedRecommender:
         return df['weighted_rating']
 
     def get_recommendations(self, title, top_n=10):
-        """Trả về danh sách các phim gợi ý, RERANKED theo chất lượng (WR)."""
-
+        """
+        Hệ thống gợi ý Hybrid nâng cao:
+        Content Similarity + Series Boosting + Genre Penalty/Bonus + Weighted Rating.
+        """
         if self.df_movies.empty or self.cosine_sim is None:
-            return [f"Lỗi: Model chưa được huấn luyện do thiếu dữ liệu."]
+            return [f"Lỗi: Model chưa được huấn luyện."]
 
-        # 1. Tìm index của phim (Đã FIX lỗi RegEx và tìm kiếm)
         try:
-            # Escape ký tự đặc biệt trong tên phim để tránh lỗi RegEx (ví dụ: dấu ngoặc tròn)
+            # 1. Tìm phim gốc (Input)
             safe_title = re.escape(title)
+            match_df = self.df_movies[self.df_movies['title'].str.contains(safe_title, case=False, na=False)]
 
-            # Tìm kiếm tên phim và lấy index đầu tiên tìm được
-            idx = self.indices[self.indices.index.str.contains(safe_title, case=False, regex=True)].iloc[0]
-        except IndexError:
-            return [f"Xin lỗi, không tìm thấy phim nào tên là '{title}'"]
+            if match_df.empty:
+                return [f"Xin lỗi, không tìm thấy phim nào chứa từ khóa '{title}'"]
 
-        # 2. Lấy danh sách điểm tương đồng
+            idx = match_df.index[0]
+            input_row = match_df.iloc[0]
+            input_movie_full_title = input_row['title']
+            # Lấy tập hợp các thể loại của phim gốc để so sánh
+            input_genres = set(str(input_row['genres']).split('|'))
+
+            # Lấy từ khóa chính của thương hiệu (ví dụ: "Transformers")
+            main_keyword = title.split(':')[0].strip()
+        except Exception as e:
+            return [f"Lỗi hệ thống khi tìm kiếm: {str(e)}"]
+
+        # 2. Lấy danh sách phim tương đồng nhất từ ma trận Cosine (Lấy 100 phim để Rerank)
         sim_scores = list(enumerate(self.cosine_sim[idx]))
-
-        # 3. Sắp xếp theo điểm tương đồng cao nhất
         sim_scores = sorted(sim_scores, key=lambda x: x[1], reverse=True)
+        top_indices = [i[0] for i in sim_scores[1:101]]
+        df_similar = self.df_movies.iloc[top_indices].copy()
 
-        # 4. Lấy 50 phim TƯƠNG ĐỒNG NHẤT (trừ chính nó) để RERANK
-        top_similar_indices = [i[0] for i in sim_scores[1:51]]
+        # --- BẮT ĐẦU CÁC LỚP LỌC TỐI ƯU (RERANKING) ---
 
-        # Tạo DataFrame tạm thời cho các phim tương đồng
-        df_similar = self.df_movies.iloc[top_similar_indices].copy()
+        # 3. SERIES BOOSTING (Ưu tiên tuyệt đối phim cùng bộ)
+        # Nếu tiêu đề chứa từ khóa chính, cộng 50 điểm
+        df_similar['series_score'] = df_similar['title'].str.contains(main_keyword, case=False).astype(int) * 50
 
-        # 5. Tính toán Weighted Rating (WR)
+        # 4. GENRE PENALTY & BONUS (Lọc theo thể loại)
+        def calculate_genre_logic(row_genres):
+            target_genres = set(str(row_genres).split('|'))
+            common_count = len(input_genres.intersection(target_genres))
+
+            # Nếu không trùng bất kỳ thể loại nào -> Phạt nặng (-20 điểm)
+            if common_count == 0:
+                return -20
+            # Nếu trùng thể loại -> Cộng điểm thưởng (5 điểm mỗi thể loại trùng)
+            return common_count * 5
+
+        df_similar['genre_score'] = df_similar['genres'].apply(calculate_genre_logic)
+
+        # 5. WEIGHTED RATING (WR) - Chất lượng phim thực tế
         df_similar['WR'] = self.calculate_wr(df_similar)
 
-        # 6. RERANK: Sắp xếp lại danh sách dựa trên điểm Weighted Rating (WR)
-        final_recommendations = df_similar.sort_values(by='WR', ascending=False)
+        # 6. TỔNG HỢP ĐIỂM CUỐI CÙNG
+        # Kết quả = Điểm thương hiệu + Điểm thể loại + Điểm chất lượng (WR)
+        df_similar['final_score'] = df_similar['series_score'] + df_similar['genre_score'] + df_similar['WR']
 
-        # Trả về top_n phim sau khi đã rerank
-        return final_recommendations['title'].head(top_n).tolist()
+        # Sắp xếp giảm dần theo final_score
+        final_recommendations = df_similar.sort_values(by='final_score', ascending=False)
+
+        # Trả về kết quả (DataFrame)
+        return final_recommendations.head(top_n)
 
 
 if __name__ == "__main__":
