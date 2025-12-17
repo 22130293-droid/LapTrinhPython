@@ -11,7 +11,6 @@ from movie_recommender_ai_module.recommender import ContentBasedRecommender
 from booking_and_voice_search.booking_serveice import check_availability, load_booking_data, save_booking
 from booking_and_voice_search.voice_controller import VoiceSearchController
 
-
 # --- 1. CẤU HÌNH & HẰNG SỐ ---
 st.set_page_config(page_title="Cinema AI System", page_icon="🍿", layout="wide")
 
@@ -124,18 +123,17 @@ class CinemaService:
 
         booked = (
             data.get("movies", {})
-                .get(m_id, {})
-                .get("showtimes", {})
-                .get(d, {})
-                .get(t, {})
-                .get("booked_seats", [])
+            .get(m_id, {})
+            .get("showtimes", {})
+            .get(d, {})
+            .get(t, {})
+            .get("booked_seats", [])
         )
 
         return [
             [1 if f"{chr(65 + r)}{c + 1}" in booked else 0 for c in range(8)]
             for r in range(6)
         ]
-
 
     def get_recommendations(self, title):
         """Hàm gọi thuật toán gợi ý từ module AI của TV1 (đã được cache)."""
@@ -151,11 +149,10 @@ class CinemaAppUI:
         self.inject_custom_css()
         self.voice_controller = VoiceSearchController()
 
-
         # State Management
         if 'page' not in st.session_state: st.session_state['page'] = 'home'
-        if "voice_query" not in st.session_state:st.session_state["voice_query"] = ""
-        if "fill_from_voice" not in st.session_state:st.session_state["fill_from_voice"] = False
+        if "voice_query" not in st.session_state: st.session_state["voice_query"] = ""
+        if "fill_from_voice" not in st.session_state: st.session_state["fill_from_voice"] = False
         if 'movie_index' not in st.session_state: st.session_state['movie_index'] = 0
         if 'selected_movie_id' not in st.session_state: st.session_state['selected_movie_id'] = None
         if 'selected_seats' not in st.session_state: st.session_state['selected_seats'] = []
@@ -258,13 +255,13 @@ class CinemaAppUI:
         """, unsafe_allow_html=True)
 
     # --- KHẮC PHỤC: HÀM RENDER HOME (ĐÃ ĐƯỢC ĐẶT TRONG CLASS) ---
-    
+
     def render_home(self):
-        
+
         self.render_header()
         self.render_event_slideshow()
 
-        #Hiển thị thanh nhận diện giọng nói
+        # Hiển thị thanh nhận diện giọng nói
         listening_placeholder = st.empty()
 
         if st.session_state.get("fill_from_voice"):
@@ -276,11 +273,10 @@ class CinemaAppUI:
 
         # --- CHỨC NĂNG TÌM KIẾM/GỢI Ý (ĐÃ THÊM ICON MICRO) ---
         # Chia cột c2 thành hai phần: Input và Icon
-          #HÀM ĐỒNG BỘ GIỌNG NÓI → INPUT (PHẢI ĐẶT TRƯỚC text_input)
-      
+        # HÀM ĐỒNG BỘ GIỌNG NÓI → INPUT (PHẢI ĐẶT TRƯỚC text_input)
+
         col_input, col_mic = c2.columns([4, 1])
-        
-      
+
         # 1. Thanh nhập liệu (chiếm 80% cột c2)
         search_query = col_input.text_input(
             "Tìm kiếm/Gợi ý phim:",
@@ -294,7 +290,7 @@ class CinemaAppUI:
             if st.button("🎙️", key="mic_icon"):
                 listening_placeholder.info("🎧 Đang nghe giọng nói...")
                 voice_text, error = self.voice_controller.get_voice_query()
-                listening_placeholder.empty() 
+                listening_placeholder.empty()
 
                 if error:
                     listening_placeholder.warning(f" {error}")
@@ -302,8 +298,6 @@ class CinemaAppUI:
                     st.session_state["voice_query"] = voice_text
                     st.session_state["fill_from_voice"] = True
                     st.rerun()
-          
-
 
         # --- LOGIC GỌI AI VÀ HIỂN THỊ KẾT QUẢ (GIỮ NGUYÊN) ---
         if search_query:
@@ -311,19 +305,52 @@ class CinemaAppUI:
             # Gọi hàm get_recommendations đã được tích hợp (từ module của Thành viên 1)
             recommendations_df = self.service.get_recommendations(search_query)
             # 2. Hiển thị Kết quả Gợi ý (Ở cột lớn c1)
-            if isinstance(recommendations_df, pd.DataFrame):                # Tiêu đề gợi ý
-                c1.markdown(f"#### ✨ Top gợi ý cho '{search_query}':")                # Hiển thị danh sách kết quả
+            if isinstance(recommendations_df, pd.DataFrame):  # Tiêu đề gợi ý
+                c1.markdown(f"#### ✨ Top gợi ý cho '{search_query}':")  # Hiển thị danh sách kết quả
                 for _, row in recommendations_df.iterrows():
-                    # Lấy thông tin từ các cột trong DataFrame
+                    # Trích xuất dữ liệu
                     r_title = row['title']
-                    # Chuyển Action|Adventure thành Action, Adventure
-                    r_genres = str(row['genres']).replace('|', ', ')
+                    r_genres = str(row['genres']).replace('|', '  •  ')
                     r_rating = row['average_rating']
                     r_votes = int(row['rating_count'])
 
-                    # HIỂN THỊ CHI TIẾT
-                    c1.markdown(f"**{r_title}**")
-                    c1.caption(f"↳ 🎭 {r_genres} | ⭐ {r_rating:.1f}/5 ({r_votes:,} votes)")
+                    # Logic Emoji theo thể loại
+                    genre_emoji = "🎬"
+                    if "Animation" in r_genres:
+                        genre_emoji = "🧸"
+                    elif "Action" in r_genres:
+                        genre_emoji = "💥"
+                    elif "Horror" in r_genres:
+                        genre_emoji = "👻"
+                    elif "Sci-Fi" in r_genres:
+                        genre_emoji = "🚀"
+                    elif "Comedy" in r_genres:
+                        genre_emoji = "🤣"
+
+                    # HTML & CSS tạo Card "Netflix Style" có hiệu ứng Hover
+                    st.markdown(f"""
+                                        <div class="movie-card" style="
+                                            background: linear-gradient(135deg, #1a1a1a 0%, #333333 100%);
+                                            padding: 20px;
+                                            border-radius: 15px;
+                                            border-left: 6px solid #E50914;
+                                            margin-bottom: 15px;
+                                            box-shadow: 5px 5px 15px rgba(0,0,0,0.5);
+                                            transition: transform 0.3s ease;
+                                        ">
+                                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                                <h4 style="margin:0; color: #FFD700; font-size: 20px;">{genre_emoji} {r_title}</h4>
+                                                <span style="background: #E50914; color: white; padding: 4px 12px; border-radius: 20px; font-size: 14px; font-weight: bold;">
+                                                    ⭐ {r_rating:.1f}
+                                                </span>
+                                            </div>
+                                            <p style="margin:10px 0; font-style: italic; color: #CCCCCC;">🎭 {r_genres}</p>
+                                            <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #444; pt-10px; margin-top: 10px;">
+                                                <span style="color: #888; font-size: 13px;">👥 {r_votes:,} đánh giá thực tế</span>
+                                                <span style="color: #00FF00; font-size: 13px; font-weight: bold;">AI Verified ✓</span>
+                                            </div>
+                                        </div>
+                                    """, unsafe_allow_html=True)
 
                 c1.markdown("---")  # Dấu phân cách
 
