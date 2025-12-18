@@ -3,6 +3,7 @@ import time as et
 import pandas as pd
 import os
 import random
+
 # --- BỔ SUNG IMPORTS TỪ MODULE AI CỦA THÀNH VIÊN 1 ---
 from movie_recommender_ai_module.data_processor import load_data
 from movie_recommender_ai_module.recommender import ContentBasedRecommender
@@ -17,6 +18,11 @@ st.set_page_config(page_title="Cinema AI System", page_icon="🍿", layout="wide
 # Đường dẫn file
 FILE_MOVIES = os.path.join("data", "movies.csv")
 FILE_SHOWTIMES = os.path.join("booking_and_voice_search", "data_structure.json")
+FILE_IMAGES = "movie_images.csv"
+
+# --- TÀI KHOẢN TEST (Login) ---
+TEST_USER = "admin"
+TEST_PASS = "123"
 
 # Ảnh mặc định
 POSTER_PLACEHOLDER = "https://placehold.co/400x600/png?text=No+Poster&font=roboto"
@@ -24,12 +30,149 @@ POSTER_PLACEHOLDER = "https://placehold.co/400x600/png?text=No+Poster&font=robot
 # Danh sách ảnh Banner
 EVENT_BANNERS = [
     "https://www.cgv.vn/media/banner/cache/1/b58515f018eb873dafa430b6f9ae0c1e/9/8/980x448_17__5.jpg",
-    "https://media.lottecinemavn.com/Media/WebAdmin/4b2559e836174a7b973909774640498b.jpg",
-    "https://media.lottecinemavn.com/Media/WebAdmin/b689028882744782928340d8544df201.jpg"
+    "https://iguov8nhvyobj.vcdn.cloud/media/banner/cache/1/b58515f018eb873dafa430b6f9ae0c1e/a/v/avatar3.jpg",
+    "https://iguov8nhvyobj.vcdn.cloud/media/banner/cache/1/b58515f018eb873dafa430b6f9ae0c1e/g/h/ghibli.jpg"
 ]
 
+# --- 2. HÀM TẠO DỮ LIỆU ẢNH MẪU ---
+# (Giữ nguyên hàm này của bạn để đảm bảo không mất logic tạo file)
+def create_demo_image_file():
+    """Tự động tạo file movie_images.csv chứa link ảnh thật."""
+    if not os.path.exists(FILE_IMAGES):
+        csv_content = """movieId,poster_url
+1,https://image.tmdb.org/t/p/w500/uXDfjJbdP4ijW5hWSBrPrlKpxab.jpg
+2,https://image.tmdb.org/t/p/w500/kzC6J8D10x9XoT6Y1q5Q8h5v5a.jpg
+3,https://image.tmdb.org/t/p/w500/1FSXpj5e8l4KH6nVFO5SPUeraOt.jpg
+4,https://image.tmdb.org/t/p/w500/3s9O5af2xWKWR5JzP2iJZpZeQQg.jpg
+5,https://image.tmdb.org/t/p/w500/rj4LBtwQ0uGrhKneQXMNCNLHqnB.jpg
+6,https://image.tmdb.org/t/p/w500/rrBuGu0PjqhYYLOBS1qvU6NNPCk.jpg
+7,https://image.tmdb.org/t/p/w500/hN12586259n64c0X1Xj0X9Xz9X.jpg
+8,https://image.tmdb.org/t/p/w500/z4x0Bp48ar3Mda8KiPD1n652Wq.jpg
+9,https://image.tmdb.org/t/p/w500/2jfloY2aJ2k2Z2j2.jpg
+10,https://image.tmdb.org/t/p/w500/5c0ovQPME0.jpg
+11,https://image.tmdb.org/t/p/w500/yFihWxQcmqcaXdaDpxxjC.jpg
+12,https://image.tmdb.org/t/p/w500/4rC8n6XZ.jpg
+13,https://image.tmdb.org/t/p/w500/gV9v6M.jpg
+14,https://image.tmdb.org/t/p/w500/c5454.jpg
+15,https://image.tmdb.org/t/p/w500/x555.jpg
+16,https://image.tmdb.org/t/p/w500/4T.jpg
+17,https://image.tmdb.org/t/p/w500/1.jpg
+18,https://image.tmdb.org/t/p/w500/2.jpg
+19,https://image.tmdb.org/t/p/w500/3.jpg
+20,https://image.tmdb.org/t/p/w500/4.jpg
+21,https://image.tmdb.org/t/p/w500/yFihWxQcmqcaXdaDpxxjC.jpg
+25,https://image.tmdb.org/t/p/w500/yFihWxQcmqcaXdaDpxxjC.jpg
+32,https://image.tmdb.org/t/p/w500/aBw8zYuAljVM1qvKqlFcaMwYm0Z.jpg
+34,https://image.tmdb.org/t/p/w500/b9gTJKLdSbwcQRKftjdV9tr8lHu.jpg
+39,https://image.tmdb.org/t/p/w500/yFihWxQcmqcaXdaDpxxjC.jpg
+47,https://image.tmdb.org/t/p/w500/6yoghtyTpznpBik8EngEmJskVUO.jpg
+48,https://image.tmdb.org/t/p/w500/2lECpi35Hnbpa4y46JX0aY3AWTy.jpg
+50,https://image.tmdb.org/t/p/w500/bUP17S2176nJ3R624s9f9k0p.jpg
+110,https://image.tmdb.org/t/p/w500/or1gBugydmjToiUqIMRwMN56LXR.jpg
+150,https://image.tmdb.org/t/p/w500/811DjJTon9gD6hZ8nCjSitaIXFQ.jpg
+153,https://image.tmdb.org/t/p/w500/hN12586259n64c0X1Xj0X9Xz9X.jpg
+161,https://image.tmdb.org/t/p/w500/hN12586259n64c0X1Xj0X9Xz9X.jpg
+165,https://image.tmdb.org/t/p/w500/hN12586259n64c0X1Xj0X9Xz9X.jpg
+260,https://image.tmdb.org/t/p/w500/6FfCtAuVAW8XJjZ7eWeLibRLWTw.jpg
+293,https://image.tmdb.org/t/p/w500/fR2v2sN5m1G2tXF9rF8a5r5.jpg
+296,https://image.tmdb.org/t/p/w500/d5iIlFn5s0ImszYzBPb8JPIfbXD.jpg
+316,https://image.tmdb.org/t/p/w500/hN12586259n64c0X1Xj0X9Xz9X.jpg
+318,https://image.tmdb.org/t/p/w500/q6y0Go1tsGEsmtFryDOJo3dEmqu.jpg
+344,https://image.tmdb.org/t/p/w500/yFihWxQcmqcaXdaDpxxjC.jpg
+356,https://image.tmdb.org/t/p/w500/saHP97rTPS5eLmrLQEcANmKrsFl.jpg
+364,https://image.tmdb.org/t/p/w500/sKCr78MXSLixwmZ8DyJLrpMsd15.jpg
+367,https://image.tmdb.org/t/p/w500/q719jXXEzOoYaps6babgKnONONX.jpg
+377,https://image.tmdb.org/t/p/w500/u3bZgnGQ9TWASq28QCRuXFIAl2f.jpg
+457,https://image.tmdb.org/t/p/w500/hN12586259n64c0X1Xj0X9Xz9X.jpg
+480,https://image.tmdb.org/t/p/w500/oU7Oq2kFAAlGqbU4VoNCQaHTbdk.jpg
+527,https://image.tmdb.org/t/p/w500/sF1U4EUQS8YHUYjNl3pTXMYnljO.jpg
+541,https://image.tmdb.org/t/p/w500/3W0v956XxSG5xgm7LB6qu8ExYJ2.jpg
+588,https://image.tmdb.org/t/p/w500/3s5mr6t2iZfW2N2Q9j4f4.jpg
+589,https://image.tmdb.org/t/p/w500/vlxJHkBfC3QfS5k490.jpg
+593,https://image.tmdb.org/t/p/w500/rplLJ2hPcOQmkFhTqUte0MkEaO2.jpg
+608,https://image.tmdb.org/t/p/w500/w7RDIgQM6bLT7JXtH4i4.jpg
+780,https://image.tmdb.org/t/p/w500/jS15a.jpg
+858,https://image.tmdb.org/t/p/w500/3bhkrj58Vtu7enYsRolD1fZdja1.jpg
+1097,https://image.tmdb.org/t/p/w500/prMUg4.jpg
+1196,https://image.tmdb.org/t/p/w500/7BuH8itoDDemLo6YNEqUM8496l9.jpg
+1197,https://image.tmdb.org/t/p/w500/7WsyChQLEftFiDOVTGkv3hFpyyt.jpg
+1198,https://image.tmdb.org/t/p/w500/ceG9VzoRAVGwivFU403Wc3AHRys.jpg
+1210,https://image.tmdb.org/t/p/w500/5UU3bY.jpg
+1214,https://image.tmdb.org/t/p/w500/2TeJfUz3wolxUyLSAVjoPHpROJ.jpg
+1240,https://image.tmdb.org/t/p/w500/eI28.jpg
+1265,https://image.tmdb.org/t/p/w500/sl7F.jpg
+1270,https://image.tmdb.org/t/p/w500/oZkT.jpg
+1291,https://image.tmdb.org/t/p/w500/39d.jpg
+1580,https://image.tmdb.org/t/p/w500/f89U3ADr1oiB1s9GkdPOEpXUk5H.jpg
+1704,https://image.tmdb.org/t/p/w500/6WBeq4fCfn7AN0o21W9qNcRF2l9.jpg
+1721,https://image.tmdb.org/t/p/w500/9xjZS2rlVxm8SFx8kPC3aIGCOYQ.jpg
+2028,https://image.tmdb.org/t/p/w500/w2PMyoyLU22YvrGKQspY2j5RPp7.jpg
+2329,https://image.tmdb.org/t/p/w500/xCIHBc3n11jG66e.jpg
+2571,https://image.tmdb.org/t/p/w500/f89U3ADr1oiB1s9GkdPOEpXUk5H.jpg
+2762,https://image.tmdb.org/t/p/w500/4q2NNj4S5dG2RLF9CpXsej7yXl.jpg
+2858,https://image.tmdb.org/t/p/w500/h5J4W4ive189AmN.jpg
+2959,https://image.tmdb.org/t/p/w500/pB8BM7pdSp6B6Ih7QZ4DrQ3PmJK.jpg
+3578,https://image.tmdb.org/t/p/w500/uS15Au.jpg
+3996,https://image.tmdb.org/t/p/w500/kiwO58MM.jpg
+4226,https://image.tmdb.org/t/p/w500/khsj.jpg
+4306,https://image.tmdb.org/t/p/w500/qJ2tW6WMUDux911r6m7haRef0WH.jpg
+4886,https://image.tmdb.org/t/p/w500/eKi8dIr8mpCdD67.jpg
+4993,https://image.tmdb.org/t/p/w500/6oom5QYQ2yQTMJIbnvbkBL9cHo6.jpg
+5816,https://image.tmdb.org/t/p/w500/qjAH13.jpg
+5952,https://image.tmdb.org/t/p/w500/5VTN0nR8Enthghbp5ECAu8.jpg
+6377,https://image.tmdb.org/t/p/w500/eN1T.jpg
+6539,https://image.tmdb.org/t/p/w500/t.jpg
+6874,https://image.tmdb.org/t/p/w500/6u.jpg
+7153,https://image.tmdb.org/t/p/w500/rCzpDGLbOoPwLjy3OAm5NUPOTrC.jpg
+7361,https://image.tmdb.org/t/p/w500/kOVEVeg59E0ws.jpg
+8961,https://image.tmdb.org/t/p/w500/2.jpg
+33794,https://image.tmdb.org/t/p/w500/w.jpg
+44191,https://image.tmdb.org/t/p/w500/w7.jpg
+48780,https://image.tmdb.org/t/p/w500/ycTypeZ9.jpg
+58559,https://image.tmdb.org/t/p/w500/qJ2tW6WMUDux911r6m7haRef0WH.jpg
+59315,https://image.tmdb.org/t/p/w500/78lPtwv72eTNqFW9COBYI0dWDJa.jpg
+60069,https://image.tmdb.org/t/p/w500/eWdyYQreja6JGCzqHWXpVr.jpg
+68157,https://image.tmdb.org/t/p/w500/hE24GYddaxB9MVZl1C6tW.jpg
+68954,https://image.tmdb.org/t/p/w500/or06FN3Dka5tukK1e9sl16pB3iy.jpg
+72998,https://image.tmdb.org/t/p/w500/kyeqWdyUXW608qlYkRqosgbbJyK.jpg
+79132,https://image.tmdb.org/t/p/w500/9gk7adHYeDvHkCSEqAvQNLV5Uge.jpg
+79702,https://image.tmdb.org/t/p/w500/w9kR8qbmQ01HwnvK4alvnQ2ca0L.jpg
+89745,https://image.tmdb.org/t/p/w500/RYMX2wcKCBAr24UyPD7xwmjaTn.jpg
+91500,https://image.tmdb.org/t/p/w500/jRXYjXNq0Cs2TcJjLkki24MLp7u.jpg
+91529,https://image.tmdb.org/t/p/w500/811DjJTon9gD6hZ8nCjSitaIXFQ.jpg
+99114,https://image.tmdb.org/t/p/w500/4ss4052TqAV0oF4ue7xP7Q0Ev0h.jpg
+109374,https://image.tmdb.org/t/p/w500/gEU2QniE6E77NI6lCU6MxlNBvIx.jpg
+109487,https://image.tmdb.org/t/p/w500/gEU2QniE6E77NI6lCU6MxlNBvIx.jpg
+112552,https://image.tmdb.org/t/p/w500/iiZZdoQBEYBv6id8su7ImL0oCbD.jpg
+112852,https://image.tmdb.org/t/p/w500/74xTEgt7R36Fpooo50r9T25onhq.jpg
+115617,https://image.tmdb.org/t/p/w500/rAiYTfKGqDCRIIqo664sY9XZIvQ.jpg
+116797,https://image.tmdb.org/t/p/w500/3jcNjAUVNV94BT9Q3tVf5hX6g8I.jpg
+122882,https://image.tmdb.org/t/p/w500/69Szs9l341Q0B33923q4852.jpg
+122904,https://image.tmdb.org/t/p/w500/5Tsw7bJ9n9n5M5q2t7r4.jpg
+122920,https://image.tmdb.org/t/p/w500/m1.jpg
+134130,https://image.tmdb.org/t/p/w500/db32LaOibwEliAmSL2jjDF6oDdj.jpg
+134853,https://image.tmdb.org/t/p/w500/jjBgi2r5cRt36xF6iNUEhzscEcb.jpg
+139385,https://image.tmdb.org/t/p/w500/hE24GYddaxB9MVZl1C6tW.jpg
+148626,https://image.tmdb.org/t/p/w500/xT98tLpV01RwgpldB9Z1t6.jpg
+152081,https://image.tmdb.org/t/p/w500/czM5.jpg
+164179,https://image.tmdb.org/t/p/w500/qjAH13.jpg
+166528,https://image.tmdb.org/t/p/w500/yEs2.jpg
+168252,https://image.tmdb.org/t/p/w500/tWqIfL5.jpg
+174055,https://image.tmdb.org/t/p/w500/6Jj.jpg
+176371,https://image.tmdb.org/t/p/w500/c9XxwwhPHdaImA2f1WEfEsbhaFB.jpg
+177593,https://image.tmdb.org/t/p/w500/mY7SeH4HFFxW1hiI6cWuwCRKptN.jpg
+177765,https://image.tmdb.org/t/p/w500/kOVEVeg59E0ws.jpg
+179401,https://image.tmdb.org/t/p/w500/c9XxwwhPHdaImA2f1WEfEsbhaFB.jpg
+179819,https://image.tmdb.org/t/p/w500/5.jpg
+180031,https://image.tmdb.org/t/p/w500/8dTWj3c74bWw2p.jpg
+183897,https://image.tmdb.org/t/p/w500/kOVEVeg59E0ws.jpg
+187593,https://image.tmdb.org/t/p/w500/7WsyChQLEftFiDOVTGkv3hFpyyt.jpg
+187595,https://image.tmdb.org/t/p/w500/q719jXXEzOoYaps6babgKnONONX.jpg
+"""
+        with open(FILE_IMAGES, "w") as f:
+            f.write(csv_content)
 
-# --- 2. LỚP ĐỐI TƯỢNG (MODEL) ---
+# --- 3. LỚP ĐỐI TƯỢNG (MODEL) ---
 class Movie:
     def __init__(self, id, title, genre, duration, rating, poster, price):
         self.id = id
@@ -40,65 +183,69 @@ class Movie:
         self.poster = poster
         self.price = price
 
-
-# Helper function: Dùng cache để model chỉ train 1 lần khi ứng dụng khởi động (Tối ưu hiệu suất)
+# --- SỬ DỤNG CACHE ĐỂ TRÁNH LỖI NHẢY THÔNG TIN (YÊU CẦU 2) ---
 @st.cache_resource
-def get_recommender_model():
-    """Tải dữ liệu đã merge và huấn luyện mô hình AI (Chỉ chạy 1 lần)."""
-    # Hàm load_data đã tự động kiểm tra cache (cleaned_data.csv) và merge 3 file
+def get_cached_data():
+    """Hàm này chỉ chạy 1 lần để tải và cố định thông tin phim (tránh random lại)."""
+    # 1. Tạo file ảnh nếu cần
+    create_demo_image_file()
+
+    # 2. Tải dữ liệu gốc
     df_movies = load_data()
+    recommender = None
+    movies_list = []
+
     if not df_movies.empty:
-        # Khởi tạo mô hình ContentBasedRecommender
+        # 3. Merge dữ liệu ảnh
+        if os.path.exists(FILE_IMAGES):
+            try:
+                df_imgs = pd.read_csv(FILE_IMAGES)
+                df_movies['movieId'] = df_movies['movieId'].astype(int)
+                df_imgs['movieId'] = df_imgs['movieId'].astype(int)
+                df_movies = pd.merge(df_movies, df_imgs[['movieId', 'poster_url']], on='movieId', how='left')
+            except Exception as e:
+                st.error(f"Lỗi load ảnh: {e}")
+                df_movies['poster_url'] = None
+        else:
+            df_movies['poster_url'] = None
+
+        # 4. Train Model
         recommender = ContentBasedRecommender(df_movies)
-        return recommender, df_movies
-    return None, pd.DataFrame()
 
+        # 5. Tạo danh sách Movie Object (CỐ ĐỊNH GIÁ & THỜI LƯỢNG TẠI ĐÂY)
+        for index, row in df_movies.head(50).iterrows():
+            img_link = POSTER_PLACEHOLDER
+            if 'poster_url' in row and pd.notna(row['poster_url']) and str(row['poster_url']).strip() != "":
+                img_link = row['poster_url']
+            else:
+                safe_title = str(row['title']).split('(')[0].strip().replace(' ', '+')
+                img_link = f"https://placehold.co/400x600?text={safe_title}"
 
-# --- 3. LỚP XỬ LÝ DỮ LIỆU & DỊCH VỤ (SERVICE) ---
+            movies_list.append(Movie(
+                id=row['movieId'],
+                title=row['title'],
+                genre=str(row['genres']).replace('|', ', '),
+                duration=f"{random.randint(90, 160)}'", # Random 1 lần duy nhất
+                rating=f"⭐ {row['average_rating']:.1f}",
+                poster=img_link,
+                price=random.choice([90000, 105000, 120000, 150000]) # Random 1 lần duy nhất
+            ))
+            
+    if not movies_list:
+        movies_list = [Movie(1, "Phim Demo", "Hành động", "120p", "C18", POSTER_PLACEHOLDER, 100000)]
+
+    return recommender, movies_list
+
+# --- 4. LỚP XỬ LÝ DỮ LIỆU & DỊCH VỤ (SERVICE) ---
 class CinemaService:
     def __init__(self):
-        self.movies = []
         self.showtimes = {}
         self.booked_seats_db = {}
-
-        # Tải mô hình đã được cache và DataFrame đã xử lý
-        self.recommender, df_movies = get_recommender_model()
-        self.load_movies_for_frontend(df_movies)  # Populate Movie objects từ DataFrame đã xử lý
-        self.load_or_build_virtual_backend()  # Logic lịch chiếu và ghế ảo (Giữ nguyên)
-
-    def load_movies_for_frontend(self, df):
-        """Sử dụng DataFrame đã được merge/xử lý (có ratings, tags) để populate các đối tượng Movie."""
-        if not df.empty:
-            # Chỉ hiển thị 30 phim hàng đầu trên trang chủ
-            for index, row in df.head(30).iterrows():
-                # LẤY DỮ LIỆU THẬT: genres và average_rating/rating_count
-                genres = str(row['genres']).replace('|', ', ')
-                rating_display = f"⭐ {row['average_rating']:.1f} ({row['rating_count']} votes)"  # Hiển thị rating thật
-
-                # Các thông tin khác vẫn dùng ảo vì không có trong dataset MovieLens
-                random_price = random.choice([90000, 105000, 120000, 150000])
-                random_duration = f"{random.randint(90, 160)} phút"
-
-                # Tạo URL Poster động
-                safe_title = str(row['title']).split('(')[0].strip().replace(' ', '+')
-                poster_url = f"https://placehold.co/400x600?text={safe_title}"
-
-                movie = Movie(
-                    id=row['movieId'],
-                    title=row['title'],
-                    genre=genres,
-                    duration=random_duration,
-                    rating=rating_display,  # Dùng rating thật đã được merge
-                    poster=poster_url,
-                    price=random_price
-                )
-                self.movies.append(movie)
-
-        if not self.movies:
-            self.movies = [Movie(1, "Phim Demo", "Hành động", "120p", "C18", POSTER_PLACEHOLDER, 100000)]
+        # Lấy dữ liệu từ Cache
+        self.recommender, self.movies = get_cached_data()
+        self.load_or_build_virtual_backend()
 
     def load_or_build_virtual_backend(self):
-        # (Giữ nguyên logic lịch chiếu và ghế ảo của TV2)
         self.showtimes = {
             "Hôm nay": ["09:30", "11:00", "14:15", "19:00", "21:30", "23:00"],
             "Ngày mai": ["10:00", "13:00", "18:00", "20:00"],
@@ -120,34 +267,23 @@ class CinemaService:
     def get_seat_layout(self, m_id, d, t):
         data = load_booking_data()
         m_id = str(m_id)
-
-        booked = (
-            data.get("movies", {})
-            .get(m_id, {})
-            .get("showtimes", {})
-            .get(d, {})
-            .get(t, {})
-            .get("booked_seats", [])
-        )
-
+        booked = data.get("movies", {}).get(m_id, {}).get("showtimes", {}).get(d, {}).get(t, {}).get("booked_seats", [])
         return [
             [1 if f"{chr(65 + r)}{c + 1}" in booked else 0 for c in range(8)]
             for r in range(6)
         ]
 
     def get_recommendations(self, title):
-        """Hàm gọi thuật toán gợi ý từ module AI của TV1 (đã được cache)."""
         if self.recommender:
             return self.recommender.get_recommendations(title)
         return []
 
-
-# --- 4. LỚP GIAO DIỆN (VIEW) ---
+# --- 5. LỚP GIAO DIỆN (UI) ---
 class CinemaAppUI:
     def __init__(self):
         self.service = CinemaService()
-        self.inject_custom_css()
         self.voice_controller = VoiceSearchController()
+        self.inject_custom_css()
 
         # State Management
         if 'page' not in st.session_state: st.session_state['page'] = 'home'
@@ -158,267 +294,225 @@ class CinemaAppUI:
         if 'selected_seats' not in st.session_state: st.session_state['selected_seats'] = []
         if 'selected_date' not in st.session_state: st.session_state['selected_date'] = "Hôm nay"
         if 'selected_time' not in st.session_state: st.session_state['selected_time'] = "19:00"
+        
+        # Login State
+        if 'is_logged_in' not in st.session_state: st.session_state['is_logged_in'] = False
+        if 'username' not in st.session_state: st.session_state['username'] = ""
+        if 'pre_login_page' not in st.session_state: st.session_state['pre_login_page'] = 'home'
 
     def inject_custom_css(self):
         st.markdown("""
             <style>
-            /* 1. NỀN & FONT CHUNG */
-            .stApp { background-color: #000000; color: #FFFFFF; font-family: 'Helvetica', sans-serif; }
-            h1, h2, h3 { color: #FFFFFF !important; }
-            p, label, span { color: #E0E0E0 !important; }
+            @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700;900&display=swap');
+            .stApp { background: linear-gradient(180deg, #0f0c29 0%, #302b63 50%, #24243e 100%); color: #FFFFFF; font-family: 'Roboto', sans-serif; }
+            h1, h2, h3, h4, h5, h6 { color: #FFFFFF !important; text-shadow: 0 2px 4px rgba(0,0,0,0.5); }
+            p, label, span, div { color: #E0E0E0; }
 
-            /* 2. HEADER */
+            /* --- HEADER TRONG SUỐT (YÊU CẦU 1) --- */
             .header-container {
                 display: flex; justify-content: space-between; align-items: center;
-                padding: 15px 20px; background-color: #111; 
-                border-bottom: 3px solid #E50914; margin-bottom: 20px;
+                padding: 10px 30px;
+                background: transparent; /* Trong suốt */
+                border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+                margin-bottom: 20px;
             }
-            .logo { font-size: 28px; font-weight: 900; color: #E50914 !important; text-transform: uppercase; text-decoration: none !important; }
-            .nav-item { color: #FFF !important; margin-left: 20px; font-weight: bold; text-decoration: none !important; transition: 0.3s; }
-            .nav-item:hover { color: #E50914 !important; }
-            .header-container a { text-decoration: none !important; border-bottom: none !important; }
-
-            /* 3. EVENT SLIDESHOW */
-            .slider-frame {
-                overflow: hidden; height: 400px; width: 100%; margin-bottom: 30px; border-radius: 12px;
-                position: relative; box-shadow: 0 10px 30px rgba(0,0,0,0.8);
-            }
-            .slide-images { width: 300%; height: 100%; display: flex; animation: slide_animation 15s infinite; }
-            .img-container { width: 100%; height: 100%; }
-            .img-container img { width: 100%; height: 100%; object-fit: cover; }
-            @keyframes slide_animation {
-                0% { margin-left: 0%; } 30% { margin-left: 0%; } 33% { margin-left: -100%; }
-                63% { margin-left: -100%; } 66% { margin-left: -200%; } 96% { margin-left: -200%; } 100% { margin-left: 0%; }
-            }
-
-            /* 4. MOVIE CARD */
-            .movie-title { color: #FFD700 !important; font-size: 16px; font-weight: bold; margin-top: 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-            .movie-meta { color: #BBB !important; font-size: 12px; }
-
-            /* 5. BUTTONS STANDARD */
-            div.stButton > button {
-                background-color: #E50914; color: white; border: none; font-weight: bold; transition: 0.3s;
-            }
-            div.stButton > button:hover { background-color: #B20710; transform: scale(1.05); }
-
-            /* 6. CUSTOM NEXT/PREV BUTTONS (MŨI TÊN TO) */
-            /* Căn chỉnh nút mũi tên to ra và nằm giữa */
-            div[data-testid="column"]:nth-of-type(1) div.stButton > button,
-            div[data-testid="column"]:nth-of-type(3) div.stButton > button {
+            /* Chỉnh các nút trong Header thành trong suốt */
+            div[data-testid="stHorizontalBlock"] button {
                 background-color: transparent !important;
-                color: rgba(255, 255, 255, 0.4) !important;
-                font-size: 50px !important;
-                border: none !important;
-                padding: 0px !important;
-                height: 100px !important;
-                line-height: 1 !important;
-                margin-top: 20px; /* Tinh chỉnh vị trí */
+                border: 1px solid rgba(255,255,255,0.2) !important;
+                color: #EEE !important;
+                transition: 0.3s;
             }
-            div[data-testid="column"]:nth-of-type(1) div.stButton > button:hover,
-            div[data-testid="column"]:nth-of-type(3) div.stButton > button:hover {
+            div[data-testid="stHorizontalBlock"] button:hover {
+                background-color: rgba(229, 9, 20, 0.2) !important;
+                border-color: #E50914 !important;
                 color: #E50914 !important;
-                transform: scale(1.2) !important;
+            }
+            .logo { font-size: 28px; font-weight: 900; background: -webkit-linear-gradient(#E50914, #ff4b55); -webkit-background-clip: text; -webkit-text-fill-color: transparent; text-transform: uppercase; text-decoration: none !important; }
+
+            /* BANNER SLIDER */
+            .slider-frame { overflow: hidden; height: 380px; width: 100%; margin-bottom: 40px; border-radius: 16px; position: relative; box-shadow: 0 20px 50px rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.1); }
+            .slide-images { width: 300%; height: 100%; display: flex; animation: slide_animation 18s infinite; }
+            .img-container { width: 100%; height: 100%; position: relative; }
+            .img-container img { width: 100%; height: 100%; object-fit: cover; filter: brightness(0.8); }
+            @keyframes slide_animation { 0% { margin-left: 0%; } 30% { margin-left: 0%; } 33% { margin-left: -100%; } 63% { margin-left: -100%; } 66% { margin-left: -200%; } 96% { margin-left: -200%; } 100% { margin-left: 0%; } }
+
+            /* MOVIE CARD */
+            .movie-container { background: rgba(30, 30, 30, 0.6); border-radius: 12px; padding: 10px; transition: transform 0.3s ease; border: 1px solid rgba(255, 255, 255, 0.05); height: 100%; }
+            .movie-container:hover { transform: translateY(-5px); border-color: #E50914; }
+            .movie-img-box { border-radius: 8px; overflow: hidden; margin-bottom: 10px; aspect-ratio: 2/3; position: relative; }
+            .movie-img-box img { width: 100%; height: 100%; object-fit: cover; }
+            .movie-title { color: #FFF !important; font-size: 15px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+            
+            /* --- NÚT GHẾ SỐ (YÊU CẦU 3) --- */
+            /* Chỉnh nút ghế nhỏ gọn hơn */
+            div[data-testid="column"] button {
+                padding: 0px !important;
+                min-height: 45px !important;
+                font-size: 12px !important;
+                font-weight: bold !important;
             }
 
-            /* 7. BOOKING SCREEN */
-            .bill-box { background-color: #1A1A1A; padding: 20px; border: 1px solid #333; border-radius: 8px; }
-            .screen { 
-                background: linear-gradient(180deg, #FFF 0%, rgba(255,255,255,0) 80%);
-                height: 50px; opacity: 0.2; width: 80%; margin: 0 auto; 
-                transform: perspective(600px) rotateX(-20deg);
-                box-shadow: 0 20px 50px rgba(255,255,255,0.2);
-            }
+            /* BILL & LOGIN BOX */
+            .bill-box { background: #FFF; color: #333 !important; padding: 20px; border-radius: 2px; border-top: 5px solid #E50914; margin-top: 20px; }
+            .bill-box div, .bill-box span { color: #333 !important; }
+            
+            /* LOGIN FORM */
+            div[data-testid="stForm"] { background-color: rgba(255,255,255,0.05); padding: 30px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.1); }
             </style>
         """, unsafe_allow_html=True)
 
     def render_header(self):
-        st.markdown("""
-            <div class="header-container">
-                <a href="#" class="logo">🎬 START CINEMA</a>
-                <div>
-                    <a href="#" class="nav-item">TRANG CHỦ</a>
-                    <a href="#" class="nav-item">SỰ KIỆN</a>
-                    <a href="#" class="nav-item">THÀNH VIÊN</a>
-                </div>
-            </div>
-        """, unsafe_allow_html=True)
+        with st.container():
+            st.markdown('<div class="header-container">', unsafe_allow_html=True)
+            c1, c2, c3, c4, c5 = st.columns([3, 1, 1, 1, 1.5])
+            
+            with c1: st.markdown('<a href="#" class="logo">🍿 START CINEMA</a>', unsafe_allow_html=True)
+            
+            with c2: 
+                if st.button("TRANG CHỦ", key="nav_home"): 
+                    st.session_state['page'] = 'home'
+                    st.rerun()
+            with c3: st.button("SỰ KIỆN", key="nav_event")
+            
+            # Login Check cho nút Thành viên
+            with c4:
+                if st.button("THÀNH VIÊN", key="nav_member"):
+                    if st.session_state['is_logged_in']:
+                        st.toast(f"Đang đăng nhập là: {st.session_state['username']}")
+                    else:
+                        st.session_state['pre_login_page'] = 'home'
+                        st.session_state['page'] = 'login'
+                        st.rerun()
 
-    def render_event_slideshow(self):
+            # Trạng thái đăng nhập
+            with c5:
+                if st.session_state['is_logged_in']:
+                    if st.button(f"Đăng xuất ({st.session_state['username']})", key="logout_btn"):
+                         st.session_state['is_logged_in'] = False
+                         st.session_state['username'] = ""
+                         st.rerun()
+                else:
+                    if st.button("🔐 ĐĂNG NHẬP", key="login_btn_header"):
+                        st.session_state['pre_login_page'] = 'home'
+                        st.session_state['page'] = 'login'
+                        st.rerun()
+            st.markdown('</div>', unsafe_allow_html=True)
+
+    def render_login(self):
+        self.render_header()
+        st.markdown("<br><br>", unsafe_allow_html=True)
+        c1, c2, c3 = st.columns([1, 1, 1])
+        with c2:
+            st.markdown("<h2 style='text-align: center; color: #E50914 !important;'>ĐĂNG NHẬP</h2>", unsafe_allow_html=True)
+            with st.form("login_form"):
+                username = st.text_input("Tên đăng nhập", placeholder="admin")
+                password = st.text_input("Mật khẩu", type="password", placeholder="123")
+                submitted = st.form_submit_button("ĐĂNG NHẬP", type="primary", use_container_width=True)
+                
+                if submitted:
+                    if username == TEST_USER and password == TEST_PASS:
+                        st.session_state['is_logged_in'] = True
+                        st.session_state['username'] = username
+                        st.success("Đăng nhập thành công!")
+                        et.sleep(0.5)
+                        st.session_state['page'] = st.session_state['pre_login_page']
+                        st.rerun()
+                    else:
+                        st.error("Sai tài khoản hoặc mật khẩu!")
+
+    def render_home(self):
+        self.render_header()
+        
         imgs_html = "".join([f'<div class="img-container"><img src="{url}"></div>' for url in EVENT_BANNERS])
         st.markdown(f"""
             <div class="slider-frame">
                 <div class="slide-images">{imgs_html}</div>
-                <div style="position: absolute; bottom: 20px; left: 30px; text-shadow: 2px 2px 4px black;">
-                    <h2 style="font-size: 40px; margin:0; color: #FFF;">HOT EVENTS</h2>
-                </div>
+                <div style="position: absolute; top:0; left:0; width:100%; height:100%; background: linear-gradient(0deg, rgba(15,12,41,1) 0%, rgba(0,0,0,0) 50%);"></div>
             </div>
         """, unsafe_allow_html=True)
 
-    # --- KHẮC PHỤC: HÀM RENDER HOME (ĐÃ ĐƯỢC ĐẶT TRONG CLASS) ---
-
-    def render_home(self):
-
-        self.render_header()
-        self.render_event_slideshow()
-
-        # Hiển thị thanh nhận diện giọng nói
         listening_placeholder = st.empty()
-
         if st.session_state.get("fill_from_voice"):
             st.session_state["manual_search_input"] = st.session_state["voice_query"]
             st.session_state["fill_from_voice"] = False
 
-        c1, c2 = st.columns([3, 1])
-        c1.subheader("🔥 PHIM ĐANG CHIẾU")
+        st.markdown("<h3 style='margin-bottom: 20px; border-left: 5px solid #E50914; padding-left: 10px;'>🔥 PHIM ĐANG CHIẾU</h3>", unsafe_allow_html=True)
+        
+        c1, c2 = st.columns([3, 1.5])
+        with c2:
+            col_in, col_btn = st.columns([5, 1])
+            search_query = col_in.text_input("Search", placeholder="🔍 Tìm tên phim...", key="manual_search_input", label_visibility="collapsed")
+            with col_btn:
+                if st.button("🎙️", key="mic_btn"):
+                    listening_placeholder.info("🎧 Đang nghe...")
+                    voice_text, error = self.voice_controller.get_voice_query()
+                    listening_placeholder.empty()
+                    if error: listening_placeholder.warning(error)
+                    else:
+                        st.session_state["voice_query"] = voice_text
+                        st.session_state["fill_from_voice"] = True
+                        st.rerun()
 
-        # --- CHỨC NĂNG TÌM KIẾM/GỢI Ý (ĐÃ THÊM ICON MICRO) ---
-        # Chia cột c2 thành hai phần: Input và Icon
-        # HÀM ĐỒNG BỘ GIỌNG NÓI → INPUT (PHẢI ĐẶT TRƯỚC text_input)
-
-        col_input, col_mic = c2.columns([4, 1])
-
-        # 1. Thanh nhập liệu (chiếm 80% cột c2)
-        search_query = col_input.text_input(
-            "Tìm kiếm/Gợi ý phim:",
-            placeholder="Nhập tên phim...",
-            key="manual_search_input",
-            label_visibility="collapsed"
-        )
-
-        # 2. Icon Micro (chiếm 20% cột c2)
-        with col_mic:
-            if st.button("🎙️", key="mic_icon"):
-                listening_placeholder.info("🎧 Đang nghe giọng nói...")
-                voice_text, error = self.voice_controller.get_voice_query()
-                listening_placeholder.empty()
-
-                if error:
-                    listening_placeholder.warning(f" {error}")
-                else:
-                    st.session_state["voice_query"] = voice_text
-                    st.session_state["fill_from_voice"] = True
-                    st.rerun()
-
-        # --- LOGIC GỌI AI VÀ HIỂN THỊ KẾT QUẢ (GIỮ NGUYÊN) ---
         if search_query:
-
-            # Gọi hàm get_recommendations đã được tích hợp (từ module của Thành viên 1)
-            recommendations_df = self.service.get_recommendations(search_query)
-            # 2. Hiển thị Kết quả Gợi ý (Ở cột lớn c1)
-            if isinstance(recommendations_df, pd.DataFrame):  # Tiêu đề gợi ý
-                c1.markdown(f"#### ✨ Top gợi ý cho '{search_query}':")  # Hiển thị danh sách kết quả
-                for _, row in recommendations_df.iterrows():
-                    # Trích xuất dữ liệu
-                    r_title = row['title']
-                    r_genres = str(row['genres']).replace('|', '  •  ')
-                    r_rating = row['average_rating']
-                    r_votes = int(row['rating_count'])
-
-                    # Logic Emoji theo thể loại
-                    genre_emoji = "🎬"
-                    if "Animation" in r_genres:
-                        genre_emoji = "🧸"
-                    elif "Action" in r_genres:
-                        genre_emoji = "💥"
-                    elif "Horror" in r_genres:
-                        genre_emoji = "👻"
-                    elif "Sci-Fi" in r_genres:
-                        genre_emoji = "🚀"
-                    elif "Comedy" in r_genres:
-                        genre_emoji = "🤣"
-
-                    # HTML & CSS tạo Card "Netflix Style" có hiệu ứng Hover
-                    st.markdown(f"""
-                                        <div class="movie-card" style="
-                                            background: linear-gradient(135deg, #1a1a1a 0%, #333333 100%);
-                                            padding: 20px;
-                                            border-radius: 15px;
-                                            border-left: 6px solid #E50914;
-                                            margin-bottom: 15px;
-                                            box-shadow: 5px 5px 15px rgba(0,0,0,0.5);
-                                            transition: transform 0.3s ease;
-                                        ">
-                                            <div style="display: flex; justify-content: space-between; align-items: center;">
-                                                <h4 style="margin:0; color: #FFD700; font-size: 20px;">{genre_emoji} {r_title}</h4>
-                                                <span style="background: #E50914; color: white; padding: 4px 12px; border-radius: 20px; font-size: 14px; font-weight: bold;">
-                                                    ⭐ {r_rating:.1f}
-                                                </span>
-                                            </div>
-                                            <p style="margin:10px 0; font-style: italic; color: #CCCCCC;">🎭 {r_genres}</p>
-                                            <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #444; pt-10px; margin-top: 10px;">
-                                                <span style="color: #888; font-size: 13px;">👥 {r_votes:,} đánh giá thực tế</span>
-                                                <span style="color: #00FF00; font-size: 13px; font-weight: bold;">AI Verified ✓</span>
-                                            </div>
-                                        </div>
-                                    """, unsafe_allow_html=True)
-
-                c1.markdown("---")  # Dấu phân cách
-
-
-            elif isinstance(recommendations_df, list) and len(recommendations_df) > 0:
-                c1.warning(recommendations_df[0])
-
-        # --- END CHỨC NĂNG TÌM KIẾM/GỢI Ý ---
+            with c1:
+                st.markdown(f"##### Kết quả tìm kiếm cho: *'{search_query}'*")
+                recs = self.service.get_recommendations(search_query)
+                if isinstance(recs, pd.DataFrame):
+                    for _, row in recs.iterrows():
+                        st.markdown(f"""
+                        <div class="rec-card">
+                            <div><span style="font-weight:bold; color:#FFD700;">{row['title']}</span> <span style="font-size:12px; color:#aaa;">({str(row['genres']).replace('|', ', ')})</span></div>
+                            <div style="color:#E50914; font-weight:bold;">⭐ {row['average_rating']:.1f}</div>
+                        </div>
+                        """, unsafe_allow_html=True)
+                elif isinstance(recs, list) and recs:
+                    st.warning(recs[0])
 
         movies = self.service.get_all_movies()
         items_per_slide = 5
         total_movies = len(movies)
+        start_idx = st.session_state['movie_index']
+        end_idx = min(start_idx + items_per_slide, total_movies)
+        current_movies = movies[start_idx:end_idx]
 
-        # Chia 3 cột: [Nút Trái] -- [Danh sách Phim] -- [Nút Phải]
-        col_prev, col_display, col_next = st.columns([0.5, 10, 0.5])
-
-        # Nút Trái
+        col_prev, col_main, col_next = st.columns([0.2, 10, 0.2])
+        
         with col_prev:
-            st.markdown("<div style='height: 180px;'></div>", unsafe_allow_html=True)  # Spacer đẩy nút xuống giữa
-            if st.session_state['movie_index'] > 0:
-                if st.button("◀", key="prev_btn"):
-                    st.session_state['movie_index'] = max(0, st.session_state['movie_index'] - items_per_slide)
-                    st.rerun()
+            st.markdown("<br>"*8, unsafe_allow_html=True)
+            if start_idx > 0 and st.button("❮", key="prev"):
+                st.session_state['movie_index'] = max(0, start_idx - items_per_slide)
+                st.rerun()
 
-        # Danh sách phim
-        with col_display:
-            start_idx = st.session_state['movie_index']
-            end_idx = min(start_idx + items_per_slide, total_movies)
-            current_movies = movies[start_idx:end_idx]
-
+        with col_main:
             cols = st.columns(items_per_slide)
             for idx, movie in enumerate(current_movies):
                 with cols[idx]:
-                    if movie is None: continue  # Fix lỗi NoneType
+                    if movie:
+                        with st.container():
+                            st.markdown(f"""
+                                <div class="movie-container">
+                                    <div class="movie-img-box"><img src="{movie.poster}"></div>
+                                    <div class="movie-title" title="{movie.title}">{movie.title}</div>
+                                    <div class="movie-meta"><span class="tag">{movie.genre.split(',')[0]}</span><span>{movie.rating.split('(')[0]}</span></div>
+                                </div>
+                            """, unsafe_allow_html=True)
+                            if st.button("ĐẶT VÉ", key=f"btn_{movie.id}"):
+                                st.session_state['selected_movie_id'] = movie.id
+                                st.session_state['selected_seats'] = []
+                                st.session_state['page'] = 'booking'
+                                st.rerun()
 
-                    with st.container():
-                        poster = movie.poster if movie.poster else POSTER_PLACEHOLDER
-                        st.markdown(f"""
-                            <div style="border-radius: 8px; overflow: hidden; margin-bottom: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.3);">
-                                <img src="{poster}" style="width: 100%; aspect-ratio: 2/3; object-fit: cover;">
-                            </div>
-                        """, unsafe_allow_html=True)
-                        st.markdown(f"<div class='movie-title' title='{movie.title}'>{movie.title}</div>",
-                                    unsafe_allow_html=True)
-                        st.markdown(f"<div class='movie-meta'>{movie.genre}</div>", unsafe_allow_html=True)
-                        st.markdown(f"<div class='movie-meta'>⭐ {movie.rating} | ⏱ {movie.duration}</div>",
-                                    unsafe_allow_html=True)
-
-                        st.write("")
-                        if st.button("ĐẶT VÉ", key=f"btn_{movie.id}"):
-                            st.session_state['selected_movie_id'] = movie.id
-                            st.session_state['selected_seats'] = []
-                            st.session_state['page'] = 'booking'
-                            st.rerun()
-
-            st.caption(f"Hiển thị {start_idx + 1} - {end_idx} trên tổng số {total_movies} phim")
-
-        # Nút Phải
         with col_next:
-            st.markdown("<div style='height: 180px;'></div>", unsafe_allow_html=True)  # Spacer đẩy nút xuống giữa
-            if end_idx < total_movies:
-                if st.button("▶", key="next_btn"):
-                    st.session_state['movie_index'] += items_per_slide
-                    st.rerun()
+            st.markdown("<br>"*8, unsafe_allow_html=True)
+            if end_idx < total_movies and st.button("❯", key="next"):
+                st.session_state['movie_index'] += items_per_slide
+                st.rerun()
 
-    # --- HÀM RENDER BOOKING (ĐÃ ĐƯỢC ĐẶT TRONG CLASS) ---
     def render_booking(self):
         self.render_header()
+        
+        # Nhờ cache, movie ở đây sẽ không bị random lại thông tin
         movie = self.service.get_movie_by_id(st.session_state['selected_movie_id'])
 
         if not movie:
@@ -428,100 +522,99 @@ class CinemaAppUI:
                 st.rerun()
             return
 
-        if st.button("⬅️ QUAY LẠI TRANG CHỦ", key="back_home"):
+        if st.button("⬅ Quay lại", key="back_home"):
             st.session_state['page'] = 'home'
             st.rerun()
 
-        st.markdown("---")
-        col_L, col_R = st.columns([1.2, 2.5])
+        col_L, col_R = st.columns([1, 2], gap="large")
 
-        # CỘT TRÁI
         with col_L:
-            c1, c2 = st.columns([1, 1.5])
-            c1.image(movie.poster, use_container_width=True)
-            with c2:
-                st.markdown(f"### {movie.title}")
-                st.caption(f"Thể loại: {movie.genre}")
-                st.caption(f"Thời lượng: {movie.duration}")
+            st.markdown(f"""
+                <div style="background: rgba(255,255,255,0.05); padding: 20px; border-radius: 12px; display: flex; gap: 15px; border: 1px solid rgba(255,255,255,0.1);">
+                    <img src="{movie.poster}" style="width: 100px; border-radius: 8px;">
+                    <div><h3 style="margin: 0; color: #FFD700;">{movie.title}</h3><p style="font-size: 13px;">⏱ {movie.duration}</p></div>
+                </div>
+            """, unsafe_allow_html=True)
 
-            st.markdown("---")
-            st.write("📅 **NGÀY & GIỜ CHIẾU**")
-
+            st.markdown("### 📅 CHỌN SUẤT CHIẾU")
             days = list(self.service.showtimes.keys())
-            s_day = st.selectbox("Ngày:", days, label_visibility="collapsed")
+            s_day = st.selectbox("Chọn Ngày", days, label_visibility="collapsed")
             st.session_state['selected_date'] = s_day
-
             times = self.service.showtimes.get(s_day, [])
-            s_time = st.radio("Giờ:", times, horizontal=True)
+            s_time = st.radio("Chọn Giờ", times, horizontal=True)
             st.session_state['selected_time'] = s_time
 
-            st.markdown("<br><div class='bill-box'>", unsafe_allow_html=True)
-            st.markdown("#### 🧾 HÓA ĐƠN")
             count = len(st.session_state['selected_seats'])
             total = count * movie.price
-            st.write(f"Vé: {count} x {movie.price:,.0f} đ")
-            st.markdown(f"<h3 style='color:#E50914 !important'>TỔNG: {total:,.0f} đ</h3>", unsafe_allow_html=True)
+            
+            st.markdown(f"""
+            <div class="bill-box">
+                <div style="text-align: center; font-weight: 900;">RECEIPT</div>
+                <div style="display: flex; justify-content: space-between;"><span>Phim:</span> <strong>{movie.title[:15]}...</strong></div>
+                <div style="display: flex; justify-content: space-between;"><span>Ghế:</span> <strong>{', '.join(st.session_state['selected_seats']) if count else '--'}</strong></div>
+                <hr style="border-top: 2px solid #333;">
+                <div style="display: flex; justify-content: space-between; font-size: 20px; font-weight: bold; color: #E50914;"><span>TỔNG:</span> <span>{total:,.0f} đ</span></div>
+            </div>
+            """, unsafe_allow_html=True)
 
             if count > 0:
-                if st.button("THANH TOÁN NGAY", type="primary"):
-
-                    movie_id = movie.id
-                    date = st.session_state['selected_date']
-                    time = st.session_state['selected_time']
-                    seats = st.session_state['selected_seats']
-
-                    # 1 Kiểm tra ghế
-                    if not check_availability(movie_id, date, time, seats):
-                        st.error(" Một số ghế đã được người khác đặt. Vui lòng chọn lại.")
-                        return
-
-                    # 2 Lưu booking
-                    save_booking(movie_id, date, time, seats)
-
-                    # 3 Reset state
-                    st.session_state['selected_seats'] = []
-                    st.balloons()
-                    st.success("🎉 Đặt vé thành công!")
-                    et.sleep(2)
-                    st.rerun()
-            # else:
-            #     # st.info("Vui lòng chọn ghế bên phải")
-            #     st.markdown("</div>", unsafe_allow_html=True)
-
-        # CỘT PHẢI
-        with col_R:
-            st.subheader("SƠ ĐỒ GHẾ NGỒI")
-            st.markdown("<div class='screen'>MÀN HÌNH</div><br>", unsafe_allow_html=True)
-            layout = self.service.get_seat_layout(movie.id, st.session_state['selected_date'],
-                                                  st.session_state['selected_time'])
-
-            for r, row in enumerate(layout):
-                cols = st.columns(8)
-                for c, status in enumerate(row):
-                    seat_id = f"{chr(65 + r)}{c + 1}"
-                    with cols[c]:
-                        if status == 1:
-                            st.button("❌", key=seat_id, disabled=True)
-                        elif seat_id in st.session_state['selected_seats']:
-                            if st.button("✅", key=seat_id, type="primary"):
-                                st.session_state['selected_seats'].remove(seat_id)
-                                st.rerun()
+                st.write("")
+                # Logic thanh toán kiểm tra Login
+                if st.button("THANH TOÁN & XUẤT VÉ", type="primary"):
+                    if not st.session_state['is_logged_in']:
+                        st.warning("⚠️ Bạn cần đăng nhập để thanh toán!")
+                        et.sleep(1)
+                        st.session_state['pre_login_page'] = 'booking'
+                        st.session_state['page'] = 'login'
+                        st.rerun()
+                    else:
+                        if not check_availability(movie.id, s_day, s_time, st.session_state['selected_seats']):
+                            st.error("Ghế đã có người đặt!")
                         else:
-                            if st.button("⬜", key=seat_id):
-                                st.session_state['selected_seats'].append(seat_id)
-                                st.rerun()
-            st.markdown("---")
-            xc1, xc2, xc3 = st.columns(3)
-            xc1.markdown("⬜ **Ghế trống**")
-            xc2.markdown("❌ **Đã bán**")
-            xc3.markdown("✅ **Đang chọn**")
+                            save_booking(movie.id, s_day, s_time, st.session_state['selected_seats'])
+                            st.session_state['selected_seats'] = []
+                            st.balloons()
+                            st.success(f"Cảm ơn {st.session_state['username']}! Đặt vé thành công.")
+                            et.sleep(2)
+                            st.session_state['page'] = 'home'
+                            st.rerun()
+
+        with col_R:
+            st.markdown("<div class='screen-container'><div class='screen'></div></div>", unsafe_allow_html=True)
+            layout = self.service.get_seat_layout(movie.id, st.session_state['selected_date'], st.session_state['selected_time'])
+            
+            # --- HIỂN THỊ SỐ GHẾ (YÊU CẦU 3) ---
+            with st.container():
+                for r, row in enumerate(layout):
+                    cols = st.columns([1] + [1]*8 + [1])
+                    for c, status in enumerate(row):
+                        seat_id = f"{chr(65 + r)}{c + 1}"
+                        with cols[c+1]:
+                            # Hiển thị mã ghế lên nút
+                            if status == 1: 
+                                st.button(f"{seat_id}", key=seat_id, disabled=True)
+                            elif seat_id in st.session_state['selected_seats']:
+                                if st.button(f"✅ {seat_id}", key=seat_id, type="primary"):
+                                    st.session_state['selected_seats'].remove(seat_id)
+                                    st.rerun()
+                            else:
+                                if st.button(f"{seat_id}", key=seat_id):
+                                    st.session_state['selected_seats'].append(seat_id)
+                                    st.rerun()
+            
+            st.markdown("<br><hr style='opacity: 0.2'>", unsafe_allow_html=True)
+            xc2, xc3, xc4 = st.columns([2,2,2])
+            with xc2: st.markdown("⬜ **Trống**")
+            with xc3: st.markdown("❌ **Đã bán**")
+            with xc4: st.markdown("✅ **Đang chọn**")
 
     def run(self):
         if st.session_state['page'] == 'home':
             self.render_home()
         elif st.session_state['page'] == 'booking':
             self.render_booking()
-
+        elif st.session_state['page'] == 'login':
+            self.render_login()
 
 if __name__ == "__main__":
     app = CinemaAppUI()
