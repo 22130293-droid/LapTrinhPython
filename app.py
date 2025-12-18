@@ -1,456 +1,620 @@
 import streamlit as st
+import time as et
 import pandas as pd
 import os
 import random
-import textwrap
-import json
-import hashlib
 
-# --- 1. CẤU HÌNH ---
-st.set_page_config(page_title="Start Cinema System", page_icon="🎬", layout="wide")
+# --- BỔ SUNG IMPORTS TỪ MODULE AI CỦA THÀNH VIÊN 1 ---
+from movie_recommender_ai_module.data_processor import load_data
+from movie_recommender_ai_module.recommender import ContentBasedRecommender
 
-FILE_USERS = "users.json"
-FILE_BOOKINGS = "bookings.json"
-FILE_MOVIES = "data/movies.csv"
-FILE_SHOWTIMES = "backend_module/data_structure.json"
+# --- BOOKING VÀ MODULE AI VOICE SEARCH THÀNH VIÊN 2 ---
+from booking_and_voice_search.booking_serveice import check_availability, load_booking_data, save_booking
+from booking_and_voice_search.voice_controller import VoiceSearchController
 
+# --- 1. CẤU HÌNH & HẰNG SỐ ---
+st.set_page_config(page_title="Cinema AI System", page_icon="🍿", layout="wide")
+
+# Đường dẫn file
+FILE_MOVIES = os.path.join("data", "movies.csv")
+FILE_SHOWTIMES = os.path.join("booking_and_voice_search", "data_structure.json")
+FILE_IMAGES = "movie_images.csv"
+
+# --- TÀI KHOẢN TEST (Login) ---
+TEST_USER = "admin"
+TEST_PASS = "123"
+
+# Ảnh mặc định
+POSTER_PLACEHOLDER = "https://placehold.co/400x600/png?text=No+Poster&font=roboto"
+
+# Danh sách ảnh Banner
 EVENT_BANNERS = [
-    "https://media.lottecinemavn.com/Media/WebAdmin/35faf5f79b8c43fa91450705f57b9b10.png",
-    "https://media.lottecinemavn.com/Media/WebAdmin/4b2559e836174a7b973909774640498b.jpg",
-    "https://media.lottecinemavn.com/Media/WebAdmin/b689028882744782928340d8544df201.jpg"
+    "https://www.cgv.vn/media/banner/cache/1/b58515f018eb873dafa430b6f9ae0c1e/9/8/980x448_17__5.jpg",
+    "https://iguov8nhvyobj.vcdn.cloud/media/banner/cache/1/b58515f018eb873dafa430b6f9ae0c1e/a/v/avatar3.jpg",
+    "https://iguov8nhvyobj.vcdn.cloud/media/banner/cache/1/b58515f018eb873dafa430b6f9ae0c1e/g/h/ghibli.jpg"
 ]
 
-SNACK_MENU = {
-    "combo_1": {"name": "Combo Solo", "price": 79000, "icon": "🍿🥤"},
-    "combo_2": {"name": "Combo Đôi", "price": 109000, "icon": "🍿🥤🥤"},
-}
+# --- 2. HÀM TẠO DỮ LIỆU ẢNH MẪU ---
+# (Giữ nguyên hàm này của bạn để đảm bảo không mất logic tạo file)
+def create_demo_image_file():
+    """Tự động tạo file movie_images.csv chứa link ảnh thật."""
+    if not os.path.exists(FILE_IMAGES):
+        csv_content = """movieId,poster_url
+1,https://image.tmdb.org/t/p/w500/uXDfjJbdP4ijW5hWSBrPrlKpxab.jpg
+2,https://image.tmdb.org/t/p/w500/kzC6J8D10x9XoT6Y1q5Q8h5v5a.jpg
+3,https://image.tmdb.org/t/p/w500/1FSXpj5e8l4KH6nVFO5SPUeraOt.jpg
+4,https://image.tmdb.org/t/p/w500/3s9O5af2xWKWR5JzP2iJZpZeQQg.jpg
+5,https://image.tmdb.org/t/p/w500/rj4LBtwQ0uGrhKneQXMNCNLHqnB.jpg
+6,https://image.tmdb.org/t/p/w500/rrBuGu0PjqhYYLOBS1qvU6NNPCk.jpg
+7,https://image.tmdb.org/t/p/w500/hN12586259n64c0X1Xj0X9Xz9X.jpg
+8,https://image.tmdb.org/t/p/w500/z4x0Bp48ar3Mda8KiPD1n652Wq.jpg
+9,https://image.tmdb.org/t/p/w500/2jfloY2aJ2k2Z2j2.jpg
+10,https://image.tmdb.org/t/p/w500/5c0ovQPME0.jpg
+11,https://image.tmdb.org/t/p/w500/yFihWxQcmqcaXdaDpxxjC.jpg
+12,https://image.tmdb.org/t/p/w500/4rC8n6XZ.jpg
+13,https://image.tmdb.org/t/p/w500/gV9v6M.jpg
+14,https://image.tmdb.org/t/p/w500/c5454.jpg
+15,https://image.tmdb.org/t/p/w500/x555.jpg
+16,https://image.tmdb.org/t/p/w500/4T.jpg
+17,https://image.tmdb.org/t/p/w500/1.jpg
+18,https://image.tmdb.org/t/p/w500/2.jpg
+19,https://image.tmdb.org/t/p/w500/3.jpg
+20,https://image.tmdb.org/t/p/w500/4.jpg
+21,https://image.tmdb.org/t/p/w500/yFihWxQcmqcaXdaDpxxjC.jpg
+25,https://image.tmdb.org/t/p/w500/yFihWxQcmqcaXdaDpxxjC.jpg
+32,https://image.tmdb.org/t/p/w500/aBw8zYuAljVM1qvKqlFcaMwYm0Z.jpg
+34,https://image.tmdb.org/t/p/w500/b9gTJKLdSbwcQRKftjdV9tr8lHu.jpg
+39,https://image.tmdb.org/t/p/w500/yFihWxQcmqcaXdaDpxxjC.jpg
+47,https://image.tmdb.org/t/p/w500/6yoghtyTpznpBik8EngEmJskVUO.jpg
+48,https://image.tmdb.org/t/p/w500/2lECpi35Hnbpa4y46JX0aY3AWTy.jpg
+50,https://image.tmdb.org/t/p/w500/bUP17S2176nJ3R624s9f9k0p.jpg
+110,https://image.tmdb.org/t/p/w500/or1gBugydmjToiUqIMRwMN56LXR.jpg
+150,https://image.tmdb.org/t/p/w500/811DjJTon9gD6hZ8nCjSitaIXFQ.jpg
+153,https://image.tmdb.org/t/p/w500/hN12586259n64c0X1Xj0X9Xz9X.jpg
+161,https://image.tmdb.org/t/p/w500/hN12586259n64c0X1Xj0X9Xz9X.jpg
+165,https://image.tmdb.org/t/p/w500/hN12586259n64c0X1Xj0X9Xz9X.jpg
+260,https://image.tmdb.org/t/p/w500/6FfCtAuVAW8XJjZ7eWeLibRLWTw.jpg
+293,https://image.tmdb.org/t/p/w500/fR2v2sN5m1G2tXF9rF8a5r5.jpg
+296,https://image.tmdb.org/t/p/w500/d5iIlFn5s0ImszYzBPb8JPIfbXD.jpg
+316,https://image.tmdb.org/t/p/w500/hN12586259n64c0X1Xj0X9Xz9X.jpg
+318,https://image.tmdb.org/t/p/w500/q6y0Go1tsGEsmtFryDOJo3dEmqu.jpg
+344,https://image.tmdb.org/t/p/w500/yFihWxQcmqcaXdaDpxxjC.jpg
+356,https://image.tmdb.org/t/p/w500/saHP97rTPS5eLmrLQEcANmKrsFl.jpg
+364,https://image.tmdb.org/t/p/w500/sKCr78MXSLixwmZ8DyJLrpMsd15.jpg
+367,https://image.tmdb.org/t/p/w500/q719jXXEzOoYaps6babgKnONONX.jpg
+377,https://image.tmdb.org/t/p/w500/u3bZgnGQ9TWASq28QCRuXFIAl2f.jpg
+457,https://image.tmdb.org/t/p/w500/hN12586259n64c0X1Xj0X9Xz9X.jpg
+480,https://image.tmdb.org/t/p/w500/oU7Oq2kFAAlGqbU4VoNCQaHTbdk.jpg
+527,https://image.tmdb.org/t/p/w500/sF1U4EUQS8YHUYjNl3pTXMYnljO.jpg
+541,https://image.tmdb.org/t/p/w500/3W0v956XxSG5xgm7LB6qu8ExYJ2.jpg
+588,https://image.tmdb.org/t/p/w500/3s5mr6t2iZfW2N2Q9j4f4.jpg
+589,https://image.tmdb.org/t/p/w500/vlxJHkBfC3QfS5k490.jpg
+593,https://image.tmdb.org/t/p/w500/rplLJ2hPcOQmkFhTqUte0MkEaO2.jpg
+608,https://image.tmdb.org/t/p/w500/w7RDIgQM6bLT7JXtH4i4.jpg
+780,https://image.tmdb.org/t/p/w500/jS15a.jpg
+858,https://image.tmdb.org/t/p/w500/3bhkrj58Vtu7enYsRolD1fZdja1.jpg
+1097,https://image.tmdb.org/t/p/w500/prMUg4.jpg
+1196,https://image.tmdb.org/t/p/w500/7BuH8itoDDemLo6YNEqUM8496l9.jpg
+1197,https://image.tmdb.org/t/p/w500/7WsyChQLEftFiDOVTGkv3hFpyyt.jpg
+1198,https://image.tmdb.org/t/p/w500/ceG9VzoRAVGwivFU403Wc3AHRys.jpg
+1210,https://image.tmdb.org/t/p/w500/5UU3bY.jpg
+1214,https://image.tmdb.org/t/p/w500/2TeJfUz3wolxUyLSAVjoPHpROJ.jpg
+1240,https://image.tmdb.org/t/p/w500/eI28.jpg
+1265,https://image.tmdb.org/t/p/w500/sl7F.jpg
+1270,https://image.tmdb.org/t/p/w500/oZkT.jpg
+1291,https://image.tmdb.org/t/p/w500/39d.jpg
+1580,https://image.tmdb.org/t/p/w500/f89U3ADr1oiB1s9GkdPOEpXUk5H.jpg
+1704,https://image.tmdb.org/t/p/w500/6WBeq4fCfn7AN0o21W9qNcRF2l9.jpg
+1721,https://image.tmdb.org/t/p/w500/9xjZS2rlVxm8SFx8kPC3aIGCOYQ.jpg
+2028,https://image.tmdb.org/t/p/w500/w2PMyoyLU22YvrGKQspY2j5RPp7.jpg
+2329,https://image.tmdb.org/t/p/w500/xCIHBc3n11jG66e.jpg
+2571,https://image.tmdb.org/t/p/w500/f89U3ADr1oiB1s9GkdPOEpXUk5H.jpg
+2762,https://image.tmdb.org/t/p/w500/4q2NNj4S5dG2RLF9CpXsej7yXl.jpg
+2858,https://image.tmdb.org/t/p/w500/h5J4W4ive189AmN.jpg
+2959,https://image.tmdb.org/t/p/w500/pB8BM7pdSp6B6Ih7QZ4DrQ3PmJK.jpg
+3578,https://image.tmdb.org/t/p/w500/uS15Au.jpg
+3996,https://image.tmdb.org/t/p/w500/kiwO58MM.jpg
+4226,https://image.tmdb.org/t/p/w500/khsj.jpg
+4306,https://image.tmdb.org/t/p/w500/qJ2tW6WMUDux911r6m7haRef0WH.jpg
+4886,https://image.tmdb.org/t/p/w500/eKi8dIr8mpCdD67.jpg
+4993,https://image.tmdb.org/t/p/w500/6oom5QYQ2yQTMJIbnvbkBL9cHo6.jpg
+5816,https://image.tmdb.org/t/p/w500/qjAH13.jpg
+5952,https://image.tmdb.org/t/p/w500/5VTN0nR8Enthghbp5ECAu8.jpg
+6377,https://image.tmdb.org/t/p/w500/eN1T.jpg
+6539,https://image.tmdb.org/t/p/w500/t.jpg
+6874,https://image.tmdb.org/t/p/w500/6u.jpg
+7153,https://image.tmdb.org/t/p/w500/rCzpDGLbOoPwLjy3OAm5NUPOTrC.jpg
+7361,https://image.tmdb.org/t/p/w500/kOVEVeg59E0ws.jpg
+8961,https://image.tmdb.org/t/p/w500/2.jpg
+33794,https://image.tmdb.org/t/p/w500/w.jpg
+44191,https://image.tmdb.org/t/p/w500/w7.jpg
+48780,https://image.tmdb.org/t/p/w500/ycTypeZ9.jpg
+58559,https://image.tmdb.org/t/p/w500/qJ2tW6WMUDux911r6m7haRef0WH.jpg
+59315,https://image.tmdb.org/t/p/w500/78lPtwv72eTNqFW9COBYI0dWDJa.jpg
+60069,https://image.tmdb.org/t/p/w500/eWdyYQreja6JGCzqHWXpVr.jpg
+68157,https://image.tmdb.org/t/p/w500/hE24GYddaxB9MVZl1C6tW.jpg
+68954,https://image.tmdb.org/t/p/w500/or06FN3Dka5tukK1e9sl16pB3iy.jpg
+72998,https://image.tmdb.org/t/p/w500/kyeqWdyUXW608qlYkRqosgbbJyK.jpg
+79132,https://image.tmdb.org/t/p/w500/9gk7adHYeDvHkCSEqAvQNLV5Uge.jpg
+79702,https://image.tmdb.org/t/p/w500/w9kR8qbmQ01HwnvK4alvnQ2ca0L.jpg
+89745,https://image.tmdb.org/t/p/w500/RYMX2wcKCBAr24UyPD7xwmjaTn.jpg
+91500,https://image.tmdb.org/t/p/w500/jRXYjXNq0Cs2TcJjLkki24MLp7u.jpg
+91529,https://image.tmdb.org/t/p/w500/811DjJTon9gD6hZ8nCjSitaIXFQ.jpg
+99114,https://image.tmdb.org/t/p/w500/4ss4052TqAV0oF4ue7xP7Q0Ev0h.jpg
+109374,https://image.tmdb.org/t/p/w500/gEU2QniE6E77NI6lCU6MxlNBvIx.jpg
+109487,https://image.tmdb.org/t/p/w500/gEU2QniE6E77NI6lCU6MxlNBvIx.jpg
+112552,https://image.tmdb.org/t/p/w500/iiZZdoQBEYBv6id8su7ImL0oCbD.jpg
+112852,https://image.tmdb.org/t/p/w500/74xTEgt7R36Fpooo50r9T25onhq.jpg
+115617,https://image.tmdb.org/t/p/w500/rAiYTfKGqDCRIIqo664sY9XZIvQ.jpg
+116797,https://image.tmdb.org/t/p/w500/3jcNjAUVNV94BT9Q3tVf5hX6g8I.jpg
+122882,https://image.tmdb.org/t/p/w500/69Szs9l341Q0B33923q4852.jpg
+122904,https://image.tmdb.org/t/p/w500/5Tsw7bJ9n9n5M5q2t7r4.jpg
+122920,https://image.tmdb.org/t/p/w500/m1.jpg
+134130,https://image.tmdb.org/t/p/w500/db32LaOibwEliAmSL2jjDF6oDdj.jpg
+134853,https://image.tmdb.org/t/p/w500/jjBgi2r5cRt36xF6iNUEhzscEcb.jpg
+139385,https://image.tmdb.org/t/p/w500/hE24GYddaxB9MVZl1C6tW.jpg
+148626,https://image.tmdb.org/t/p/w500/xT98tLpV01RwgpldB9Z1t6.jpg
+152081,https://image.tmdb.org/t/p/w500/czM5.jpg
+164179,https://image.tmdb.org/t/p/w500/qjAH13.jpg
+166528,https://image.tmdb.org/t/p/w500/yEs2.jpg
+168252,https://image.tmdb.org/t/p/w500/tWqIfL5.jpg
+174055,https://image.tmdb.org/t/p/w500/6Jj.jpg
+176371,https://image.tmdb.org/t/p/w500/c9XxwwhPHdaImA2f1WEfEsbhaFB.jpg
+177593,https://image.tmdb.org/t/p/w500/mY7SeH4HFFxW1hiI6cWuwCRKptN.jpg
+177765,https://image.tmdb.org/t/p/w500/kOVEVeg59E0ws.jpg
+179401,https://image.tmdb.org/t/p/w500/c9XxwwhPHdaImA2f1WEfEsbhaFB.jpg
+179819,https://image.tmdb.org/t/p/w500/5.jpg
+180031,https://image.tmdb.org/t/p/w500/8dTWj3c74bWw2p.jpg
+183897,https://image.tmdb.org/t/p/w500/kOVEVeg59E0ws.jpg
+187593,https://image.tmdb.org/t/p/w500/7WsyChQLEftFiDOVTGkv3hFpyyt.jpg
+187595,https://image.tmdb.org/t/p/w500/q719jXXEzOoYaps6babgKnONONX.jpg
+"""
+        with open(FILE_IMAGES, "w") as f:
+            f.write(csv_content)
 
-# --- 2. AUTH SERVICE ---
-class AuthService:
-    def __init__(self):
-        self.users = self.load_users()
-    def load_users(self):
-        if not os.path.exists(FILE_USERS): return {}
-        try:
-            with open(FILE_USERS, "r", encoding="utf-8") as f: return json.load(f)
-        except: return {}
-    def save_users(self):
-        with open(FILE_USERS, "w", encoding="utf-8") as f:
-            json.dump(self.users, f, ensure_ascii=False, indent=4)
-    def hash_password(self, password):
-        return hashlib.sha256(password.encode()).hexdigest()
-    def register(self, username, password, fullname):
-        if username in self.users: return False, "Tên đăng nhập đã tồn tại!"
-        self.users[username] = {"password": self.hash_password(password), "fullname": fullname}
-        self.save_users()
-        return True, "Đăng ký thành công! Vui lòng đăng nhập."
-    def login(self, username, password):
-        if username not in self.users: return False, "Tên đăng nhập không tồn tại."
-        if self.users[username]["password"] == self.hash_password(password):
-            return True, self.users[username]["fullname"]
-        return False, "Mật khẩu không chính xác."
-
-# --- 3. DATA SERVICE ---
-@st.cache_resource
-def get_recommender_model():
-    df_movies = pd.DataFrame()
-    if os.path.exists(FILE_MOVIES):
-        try: df_movies = pd.read_csv(FILE_MOVIES)
-        except: pass
-    return None, df_movies
-
+# --- 3. LỚP ĐỐI TƯỢNG (MODEL) ---
 class Movie:
     def __init__(self, id, title, genre, duration, rating, poster, price):
-        self.id = id; self.title = title; self.genre = genre; self.duration = duration
-        self.rating = rating; self.poster = poster; self.price = price
+        self.id = id
+        self.title = title
+        self.genre = genre
+        self.duration = duration
+        self.rating = rating
+        self.poster = poster
+        self.price = price
 
+# --- SỬ DỤNG CACHE ĐỂ TRÁNH LỖI NHẢY THÔNG TIN (YÊU CẦU 2) ---
+@st.cache_resource
+def get_cached_data():
+    """Hàm này chỉ chạy 1 lần để tải và cố định thông tin phim (tránh random lại)."""
+    # 1. Tạo file ảnh nếu cần
+    create_demo_image_file()
+
+    # 2. Tải dữ liệu gốc
+    df_movies = load_data()
+    recommender = None
+    movies_list = []
+
+    if not df_movies.empty:
+        # 3. Merge dữ liệu ảnh
+        if os.path.exists(FILE_IMAGES):
+            try:
+                df_imgs = pd.read_csv(FILE_IMAGES)
+                df_movies['movieId'] = df_movies['movieId'].astype(int)
+                df_imgs['movieId'] = df_imgs['movieId'].astype(int)
+                df_movies = pd.merge(df_movies, df_imgs[['movieId', 'poster_url']], on='movieId', how='left')
+            except Exception as e:
+                st.error(f"Lỗi load ảnh: {e}")
+                df_movies['poster_url'] = None
+        else:
+            df_movies['poster_url'] = None
+
+        # 4. Train Model
+        recommender = ContentBasedRecommender(df_movies)
+
+        # 5. Tạo danh sách Movie Object (CỐ ĐỊNH GIÁ & THỜI LƯỢNG TẠI ĐÂY)
+        for index, row in df_movies.head(50).iterrows():
+            img_link = POSTER_PLACEHOLDER
+            if 'poster_url' in row and pd.notna(row['poster_url']) and str(row['poster_url']).strip() != "":
+                img_link = row['poster_url']
+            else:
+                safe_title = str(row['title']).split('(')[0].strip().replace(' ', '+')
+                img_link = f"https://placehold.co/400x600?text={safe_title}"
+
+            movies_list.append(Movie(
+                id=row['movieId'],
+                title=row['title'],
+                genre=str(row['genres']).replace('|', ', '),
+                duration=f"{random.randint(90, 160)}'", # Random 1 lần duy nhất
+                rating=f"⭐ {row['average_rating']:.1f}",
+                poster=img_link,
+                price=random.choice([90000, 105000, 120000, 150000]) # Random 1 lần duy nhất
+            ))
+            
+    if not movies_list:
+        movies_list = [Movie(1, "Phim Demo", "Hành động", "120p", "C18", POSTER_PLACEHOLDER, 100000)]
+
+    return recommender, movies_list
+
+# --- 4. LỚP XỬ LÝ DỮ LIỆU & DỊCH VỤ (SERVICE) ---
 class CinemaService:
     def __init__(self):
-        self.movies = []
         self.showtimes = {}
-        self.recommender, self.df_full = get_recommender_model()
-        self.load_movies_from_db() 
-        self.load_showtimes_from_db()
-        
-        # Load booking history
-        if 'booked_seats_db' not in st.session_state:
-            st.session_state['booked_seats_db'] = self.load_bookings()
+        self.booked_seats_db = {}
+        # Lấy dữ liệu từ Cache
+        self.recommender, self.movies = get_cached_data()
+        self.load_or_build_virtual_backend()
 
-    def load_bookings(self):
-        if os.path.exists(FILE_BOOKINGS):
-            try:
-                with open(FILE_BOOKINGS, "r", encoding="utf-8") as f: return json.load(f)
-            except: pass
-        return {"1_Hôm nay_19:00": ["D4", "D5"]} # Mock default
-
-    def save_bookings(self):
-        with open(FILE_BOOKINGS, "w", encoding="utf-8") as f:
-            json.dump(st.session_state['booked_seats_db'], f, ensure_ascii=False, indent=4)
-
-    def load_showtimes_from_db(self):
-        if os.path.exists(FILE_SHOWTIMES):
-            try:
-                with open(FILE_SHOWTIMES, "r", encoding="utf-8") as f:
-                    self.showtimes = json.load(f)
-                    return
-            except: pass
+    def load_or_build_virtual_backend(self):
         self.showtimes = {
-            "Hôm nay": ["09:30", "14:15", "19:00", "21:30"],
-            "Ngày mai": ["10:00", "18:00", "20:00"]
+            "Hôm nay": ["09:30", "11:00", "14:15", "19:00", "21:30", "23:00"],
+            "Ngày mai": ["10:00", "13:00", "18:00", "20:00"],
+            "Ngày kia": ["09:00", "15:00", "19:30"]
         }
+        self.booked_seats_db = {}
+        if self.movies:
+            key = f"{self.movies[0].id}_Hôm nay_19:00"
+            self.booked_seats_db[key] = ["A3", "A4", "A5", "C4", "C5"]
 
-    def load_movies_from_db(self):
-        if 'stored_movie_list' in st.session_state:
-            self.movies = st.session_state['stored_movie_list']
-            return
+    def get_all_movies(self):
+        return self.movies
 
-        if self.df_full is not None and not self.df_full.empty:
-            for index, row in self.df_full.head(30).iterrows():
-                m_id = row.get('movieId', index)
-                title = row.get('title', 'Unknown')
-                genres = str(row.get('genres', 'Unknown')).replace('|', ', ')
-                price = 110000
-                duration = "120 phút"
-                rating = f"⭐ {row.get('average_rating', 8.5):.1f}"
-                safe_title = title.split('(')[0].strip()
-                poster = f"https://placehold.co/400x600/222/FFF.png?text={safe_title.replace(' ', '+')}&font=roboto"
-                self.movies.append(Movie(m_id, title, genres, duration, rating, poster, price))
-        else:
-            titles = ["Jumanji", "Oppenheimer", "Barbie", "Conan", "Avatar 2", "Spider-Man", "Elemental", "Flash", "Transformers", "Insidious"]
-            for i, title in enumerate(titles):
-                self.movies.append(Movie(i + 1, title, "Hành Động", "120 phút", "⭐ 9.5", f"https://placehold.co/400x600/111/FFF.png?text={title}", 110000))
-            
-        st.session_state['stored_movie_list'] = self.movies
-
-    def get_all_movies(self): return self.movies
-    
     def get_movie_by_id(self, id):
         for m in self.movies:
             if m.id == id: return m
         return None
 
     def get_seat_layout(self, m_id, d, t):
-        key = f"{m_id}_{d}_{t}"
-        booked = st.session_state['booked_seats_db'].get(key, [])
-        return [[1 if f"{chr(65 + r)}{c + 1}" in booked else 0 for c in range(8)] for r in range(6)]
-
-    def book_seats(self, m_id, d, t, seats):
-        key = f"{m_id}_{d}_{t}"
-        if key not in st.session_state['booked_seats_db']: 
-            st.session_state['booked_seats_db'][key] = []
-        st.session_state['booked_seats_db'][key].extend(seats)
-        self.save_bookings()
+        data = load_booking_data()
+        m_id = str(m_id)
+        booked = data.get("movies", {}).get(m_id, {}).get("showtimes", {}).get(d, {}).get(t, {}).get("booked_seats", [])
+        return [
+            [1 if f"{chr(65 + r)}{c + 1}" in booked else 0 for c in range(8)]
+            for r in range(6)
+        ]
 
     def get_recommendations(self, title):
-        results = []
-        keyword = title.lower()
-        for m in self.movies:
-            if keyword in m.title.lower(): results.append(m)
-        return results
+        if self.recommender:
+            return self.recommender.get_recommendations(title)
+        return []
 
-# --- 4. UI VIEW ---
+# --- 5. LỚP GIAO DIỆN (UI) ---
 class CinemaAppUI:
     def __init__(self):
-        self.auth_service = AuthService()
         self.service = CinemaService()
-        self.init_state()
-        self.inject_css()
+        self.voice_controller = VoiceSearchController()
+        self.inject_custom_css()
 
-    def init_state(self):
-        defaults = {'page': 'home', 'current_user': None, 'movie_index': 0, 'selected_movie_id': None, 'selected_seats': [], 'selected_date': "Hôm nay", 'selected_time': "19:00", 'cart_snacks': {k: 0 for k in SNACK_MENU}}
-        for k, v in defaults.items():
-            if k not in st.session_state: st.session_state[k] = v
+        # State Management
+        if 'page' not in st.session_state: st.session_state['page'] = 'home'
+        if "voice_query" not in st.session_state: st.session_state["voice_query"] = ""
+        if "fill_from_voice" not in st.session_state: st.session_state["fill_from_voice"] = False
+        if 'movie_index' not in st.session_state: st.session_state['movie_index'] = 0
+        if 'selected_movie_id' not in st.session_state: st.session_state['selected_movie_id'] = None
+        if 'selected_seats' not in st.session_state: st.session_state['selected_seats'] = []
+        if 'selected_date' not in st.session_state: st.session_state['selected_date'] = "Hôm nay"
+        if 'selected_time' not in st.session_state: st.session_state['selected_time'] = "19:00"
+        
+        # Login State
+        if 'is_logged_in' not in st.session_state: st.session_state['is_logged_in'] = False
+        if 'username' not in st.session_state: st.session_state['username'] = ""
+        if 'pre_login_page' not in st.session_state: st.session_state['pre_login_page'] = 'home'
 
-    def inject_css(self):
-        st.markdown(textwrap.dedent("""
+    def inject_custom_css(self):
+        st.markdown("""
             <style>
-            :root { --primary: #E50914; --bg: #111; --text: #FFF; --card-bg: #23263a; }
-            .stApp { background-color: var(--bg) !important; font-family: 'Roboto', sans-serif; }
-            header { visibility: hidden; }
-            .main .block-container { padding-top: 1rem; }
+            @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700;900&display=swap');
+            .stApp { background: linear-gradient(180deg, #0f0c29 0%, #302b63 50%, #24243e 100%); color: #FFFFFF; font-family: 'Roboto', sans-serif; }
+            h1, h2, h3, h4, h5, h6 { color: #FFFFFF !important; text-shadow: 0 2px 4px rgba(0,0,0,0.5); }
+            p, label, span, div { color: #E0E0E0; }
 
-            /* --- HEADER FIXED --- */
-            .header-bg {
-                position: fixed; top: 0; left: 0; right: 0; height: 70px;
-                background: #000000; border-bottom: 2px solid var(--primary);
-                z-index: 999; display: flex; align-items: center; padding: 0 40px;
+            /* --- HEADER TRONG SUỐT (YÊU CẦU 1) --- */
+            .header-container {
+                display: flex; justify-content: space-between; align-items: center;
+                padding: 10px 30px;
+                background: transparent; /* Trong suốt */
+                border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+                margin-bottom: 20px;
             }
-            .header-logo { 
-                font-size: 24px; font-weight: 900; color: var(--primary); 
-                text-decoration: none; text-transform: uppercase; letter-spacing: 1px;
-                position: fixed; top: 18px; left: 40px; z-index: 10000;
+            /* Chỉnh các nút trong Header thành trong suốt */
+            div[data-testid="stHorizontalBlock"] button {
+                background-color: transparent !important;
+                border: 1px solid rgba(255,255,255,0.2) !important;
+                color: #EEE !important;
+                transition: 0.3s;
             }
+            div[data-testid="stHorizontalBlock"] button:hover {
+                background-color: rgba(229, 9, 20, 0.2) !important;
+                border-color: #E50914 !important;
+                color: #E50914 !important;
+            }
+            .logo { font-size: 28px; font-weight: 900; background: -webkit-linear-gradient(#E50914, #ff4b55); -webkit-background-clip: text; -webkit-text-fill-color: transparent; text-transform: uppercase; text-decoration: none !important; }
+
+            /* BANNER SLIDER */
+            .slider-frame { overflow: hidden; height: 380px; width: 100%; margin-bottom: 40px; border-radius: 16px; position: relative; box-shadow: 0 20px 50px rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.1); }
+            .slide-images { width: 300%; height: 100%; display: flex; animation: slide_animation 18s infinite; }
+            .img-container { width: 100%; height: 100%; position: relative; }
+            .img-container img { width: 100%; height: 100%; object-fit: cover; filter: brightness(0.8); }
+            @keyframes slide_animation { 0% { margin-left: 0%; } 30% { margin-left: 0%; } 33% { margin-left: -100%; } 63% { margin-left: -100%; } 66% { margin-left: -200%; } 96% { margin-left: -200%; } 100% { margin-left: 0%; } }
+
+            /* MOVIE CARD */
+            .movie-container { background: rgba(30, 30, 30, 0.6); border-radius: 12px; padding: 10px; transition: transform 0.3s ease; border: 1px solid rgba(255, 255, 255, 0.05); height: 100%; }
+            .movie-container:hover { transform: translateY(-5px); border-color: #E50914; }
+            .movie-img-box { border-radius: 8px; overflow: hidden; margin-bottom: 10px; aspect-ratio: 2/3; position: relative; }
+            .movie-img-box img { width: 100%; height: 100%; object-fit: cover; }
+            .movie-title { color: #FFF !important; font-size: 15px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
             
-            /* --- MENU BUTTONS --- */
-            .nav-container {
-                position: fixed; top: 15px; right: 40px; z-index: 10000;
-                display: flex; gap: 20px; align-items: center;
+            /* --- NÚT GHẾ SỐ (YÊU CẦU 3) --- */
+            /* Chỉnh nút ghế nhỏ gọn hơn */
+            div[data-testid="column"] button {
+                padding: 0px !important;
+                min-height: 45px !important;
+                font-size: 12px !important;
+                font-weight: bold !important;
             }
-            .nav-container button {
-                background: transparent !important; border: none !important;
-                color: #CCCCCC !important; text-transform: uppercase;
-                font-weight: 700 !important; font-size: 14px !important;
-                padding: 5px 10px !important; margin: 0 !important; box-shadow: none !important;
-            }
-            .nav-container button:hover { color: var(--primary) !important; text-decoration: none !important; }
-            .nav-container button:focus { color: var(--primary) !important; border: none !important; background: transparent !important; }
 
-            /* --- SEAT STYLES --- */
-            /* 1. Ghế đã bán */
-            button:disabled { background-color: #333 !important; color: #555 !important; border: 1px solid #444 !important; opacity: 1 !important; }
+            /* BILL & LOGIN BOX */
+            .bill-box { background: #FFF; color: #333 !important; padding: 20px; border-radius: 2px; border-top: 5px solid #E50914; margin-top: 20px; }
+            .bill-box div, .bill-box span { color: #333 !important; }
             
-            /* 2. Ghế đang chọn (Primary = Đỏ đặc) */
-            div[data-testid="column"] button[kind="primary"] {
-                background-color: var(--primary) !important; border: 1px solid var(--primary) !important;
-                color: white !important; font-weight: bold !important;
-                box-shadow: 0 0 10px rgba(229, 9, 20, 0.8) !important; transform: scale(1.05); 
-            }
-            /* Giữ màu đỏ khi focus */
-            div[data-testid="column"] button[kind="primary"]:focus,
-            div[data-testid="column"] button[kind="primary"]:active {
-                background-color: var(--primary) !important; color: white !important; border-color: var(--primary) !important;
-            }
-
-            /* 3. Ghế trống (Secondary = Viền đỏ) */
-            div[data-testid="column"] button[kind="secondary"] {
-                background-color: transparent !important; border: 1px solid var(--primary) !important; color: var(--primary) !important;
-            }
-            div[data-testid="column"] button[kind="secondary"]:hover {
-                background-color: rgba(229, 9, 20, 0.15) !important; box-shadow: 0 0 8px rgba(229, 9, 20, 0.5) !important;
-            }
-
-            /* --- MOVIE CARD & SLIDER --- */
-            .movie-card-box { background-color: var(--card-bg); border-radius: 8px; padding: 10px; border: 1px solid #333; height: 450px; display: flex; flex-direction: column; justify-content: space-between; }
-            .poster-frame { width: 100%; aspect-ratio: 2/3; overflow: hidden; border-radius: 6px; background: #000; }
-            .poster-frame img { width: 100%; height: 100%; object-fit: cover; }
-            .movie-title { font-weight: bold; font-size: 15px; color: white; margin-top: 8px; margin-bottom: 5px; height: 40px; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
-            
-            /* CSS Slider */
-            input[name="slider"] { display: none; }
-            .slider-frame { overflow: hidden; height: 450px; width: 100%; border-radius: 12px; position: relative; border: 1px solid #333; margin-bottom: 20px; }
-            .slide-images { width: 300%; height: 100%; display: flex; transition: margin-left 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94); }
-            .img-container { width: 100%; height: 100%; } .img-container img { width: 100%; height: 100%; object-fit: cover; }
-            #slide-1:checked ~ .slider-frame .slide-images { margin-left: 0%; }
-            #slide-2:checked ~ .slider-frame .slide-images { margin-left: -100%; }
-            #slide-3:checked ~ .slider-frame .slide-images { margin-left: -200%; }
-            .swiper-nav { display: flex; justify-content: center; gap: 15px; margin-bottom: 30px; }
-            .thumb-box { width: 120px; height: 70px; border-radius: 6px; overflow: hidden; border: 2px solid #444; cursor: pointer; opacity: 0.6; transition: 0.3s; }
-            .thumb-box:hover { opacity: 1; border-color: var(--primary); }
-            .thumb-box img { width: 100%; height: 100%; object-fit: cover; }
-            #slide-1:checked ~ .swiper-nav label.label-1 .thumb-box { border-color: var(--primary); opacity: 1; transform: scale(1.1); }
-            #slide-2:checked ~ .swiper-nav label.label-2 .thumb-box { border-color: var(--primary); opacity: 1; transform: scale(1.1); }
-            #slide-3:checked ~ .swiper-nav label.label-3 .thumb-box { border-color: var(--primary); opacity: 1; transform: scale(1.1); }
-
-            /* --- MISC --- */
-            .bill-box { background: #1a1a1a; padding: 20px; border-radius: 8px; border: 1px solid #333; }
-            .auth-box { background: #23263a; padding: 40px; border-radius: 12px; border: 1px solid #444; width:100%; }
-            .screen-glow { height: 4px; background: var(--primary); border-radius: 50%; box-shadow: 0 0 20px 5px var(--primary); opacity: 0.7; margin: 0 auto 30px auto; width: 80%; }
-            div.stButton > button { background-color: var(--primary); color: white; border: none; font-weight: bold; border-radius: 4px; }
-            
-            /* Voice Button Style */
-            div[data-testid="column"] button[key="mic_icon"] {
-                background: transparent !important; border: 1px solid #444 !important;
-                font-size: 20px; padding: 5px 10px !important;
-            }
+            /* LOGIN FORM */
+            div[data-testid="stForm"] { background-color: rgba(255,255,255,0.05); padding: 30px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.1); }
             </style>
-        """), unsafe_allow_html=True)
+        """, unsafe_allow_html=True)
 
     def render_header(self):
-        st.markdown('<div class="header-bg"><div class="header-logo">🎬 START CINEMA</div></div>', unsafe_allow_html=True)
-        st.markdown('<div style="height: 70px;"></div>', unsafe_allow_html=True)
         with st.container():
-            st.markdown('<div class="nav-container">', unsafe_allow_html=True)
-            c1, c2, c3 = st.columns([1, 1, 1.5]) 
-            with c1: 
-                if st.button("TRANG CHỦ", key="h_home"): st.session_state['page'] = 'home'; st.rerun()
-            with c2: st.button("SỰ KIỆN", key="h_event")
-            with c3: 
-                user = st.session_state.get('current_user')
-                label = "THÀNH VIÊN" if not user else f"👤 {user}"
-                if st.button(label, key="h_auth"): st.session_state['page'] = 'auth'; st.rerun() 
+            st.markdown('<div class="header-container">', unsafe_allow_html=True)
+            c1, c2, c3, c4, c5 = st.columns([3, 1, 1, 1, 1.5])
+            
+            with c1: st.markdown('<a href="#" class="logo">🍿 START CINEMA</a>', unsafe_allow_html=True)
+            
+            with c2: 
+                if st.button("TRANG CHỦ", key="nav_home"): 
+                    st.session_state['page'] = 'home'
+                    st.rerun()
+            with c3: st.button("SỰ KIỆN", key="nav_event")
+            
+            # Login Check cho nút Thành viên
+            with c4:
+                if st.button("THÀNH VIÊN", key="nav_member"):
+                    if st.session_state['is_logged_in']:
+                        st.toast(f"Đang đăng nhập là: {st.session_state['username']}")
+                    else:
+                        st.session_state['pre_login_page'] = 'home'
+                        st.session_state['page'] = 'login'
+                        st.rerun()
+
+            # Trạng thái đăng nhập
+            with c5:
+                if st.session_state['is_logged_in']:
+                    if st.button(f"Đăng xuất ({st.session_state['username']})", key="logout_btn"):
+                         st.session_state['is_logged_in'] = False
+                         st.session_state['username'] = ""
+                         st.rerun()
+                else:
+                    if st.button("🔐 ĐĂNG NHẬP", key="login_btn_header"):
+                        st.session_state['pre_login_page'] = 'home'
+                        st.session_state['page'] = 'login'
+                        st.rerun()
             st.markdown('</div>', unsafe_allow_html=True)
 
-    def render_auth(self):
+    def render_login(self):
         self.render_header()
-        c1, c2, c3 = st.columns([3, 4, 3])
+        st.markdown("<br><br>", unsafe_allow_html=True)
+        c1, c2, c3 = st.columns([1, 1, 1])
         with c2:
-            st.markdown("<div class='auth-box'><h2 style='text-align:center; color:#E50914'>THÀNH VIÊN</h2>", unsafe_allow_html=True)
-            tab1, tab2 = st.tabs(["ĐĂNG NHẬP", "ĐĂNG KÝ"])
-            with tab1:
-                with st.form("login"):
-                    u = st.text_input("Username")
-                    p = st.text_input("Password", type="password")
-                    if st.form_submit_button("LOGIN"):
-                        s, m = self.auth_service.login(u, p)
-                        if s: st.session_state['current_user']=m; st.session_state['page']='home'; st.rerun()
-                        else: st.error(m)
-            with tab2:
-                with st.form("reg"):
-                    u = st.text_input("New User")
-                    p = st.text_input("New Pass", type="password")
-                    f = st.text_input("Name")
-                    if st.form_submit_button("REGISTER"):
-                        s, m = self.auth_service.register(u, p, f)
-                        if s: st.success(m)
-                        else: st.error(m)
-            st.markdown("</div>", unsafe_allow_html=True)
-
-    def render_banner_swiper(self):
-        inputs = "".join([f'<input type="radio" name="slider" id="slide-{i+1}" {"checked" if i==0 else ""}>' for i in range(3)])
-        imgs = "".join([f'<div class="img-container"><img src="{url}"></div>' for url in EVENT_BANNERS])
-        thumbs = "".join([f'<label for="slide-{i+1}" class="label-{i+1}"><div class="thumb-box"><img src="{url}"></div></label>' for i, url in enumerate(EVENT_BANNERS)])
-        st.markdown(f"""
-            <div style="position: relative;">
-                {inputs}
-                <div class="slider-frame">
-                    <div class="slide-images">{imgs}</div>
-                    <div style="position: absolute; bottom: 0; left: 0; width: 100%; height: 100px; background: linear-gradient(to top, rgba(0,0,0,0.9), transparent); pointer-events: none;"></div>
-                </div>
-                <div class="swiper-nav">{thumbs}</div>
-            </div>
-        """, unsafe_allow_html=True)
+            st.markdown("<h2 style='text-align: center; color: #E50914 !important;'>ĐĂNG NHẬP</h2>", unsafe_allow_html=True)
+            with st.form("login_form"):
+                username = st.text_input("Tên đăng nhập", placeholder="admin")
+                password = st.text_input("Mật khẩu", type="password", placeholder="123")
+                submitted = st.form_submit_button("ĐĂNG NHẬP", type="primary", use_container_width=True)
+                
+                if submitted:
+                    if username == TEST_USER and password == TEST_PASS:
+                        st.session_state['is_logged_in'] = True
+                        st.session_state['username'] = username
+                        st.success("Đăng nhập thành công!")
+                        et.sleep(0.5)
+                        st.session_state['page'] = st.session_state['pre_login_page']
+                        st.rerun()
+                    else:
+                        st.error("Sai tài khoản hoặc mật khẩu!")
 
     def render_home(self):
         self.render_header()
-        self.render_banner_swiper()
-
-        if not self.service.movies: st.error("❌ No data available."); return
-
-        st.subheader("🔥 PHIM ĐANG CHIẾU")
         
-        # --- TÌM KIẾM + VOICE ICON ---
-        c_search, c_mic = st.columns([8, 1])
-        with c_search:
-            search = st.text_input("Search", placeholder="Tìm tên phim...", label_visibility="collapsed")
-        with c_mic:
-            if st.button("🎙️", key="mic_icon", help="Tìm bằng giọng nói"):
-                st.toast("Đang lắng nghe...", icon="🎤")
+        imgs_html = "".join([f'<div class="img-container"><img src="{url}"></div>' for url in EVENT_BANNERS])
+        st.markdown(f"""
+            <div class="slider-frame">
+                <div class="slide-images">{imgs_html}</div>
+                <div style="position: absolute; top:0; left:0; width:100%; height:100%; background: linear-gradient(0deg, rgba(15,12,41,1) 0%, rgba(0,0,0,0) 50%);"></div>
+            </div>
+        """, unsafe_allow_html=True)
 
-        movies = self.service.get_recommendations(search) if search else self.service.get_all_movies()
-        if not movies: st.warning("Không tìm thấy.")
+        listening_placeholder = st.empty()
+        if st.session_state.get("fill_from_voice"):
+            st.session_state["manual_search_input"] = st.session_state["voice_query"]
+            st.session_state["fill_from_voice"] = False
+
+        st.markdown("<h3 style='margin-bottom: 20px; border-left: 5px solid #E50914; padding-left: 10px;'>🔥 PHIM ĐANG CHIẾU</h3>", unsafe_allow_html=True)
         
-        # SEARCH LIST VIEW
-        if search:
-             for movie in movies:
-                with st.container():
-                    st.markdown(f"""
-                        <div style="background:#23263a; padding:15px; border-radius:8px; margin-bottom:10px; border:1px solid #333; display:flex; gap:20px;">
-                            <img src="{movie.poster}" style="width:100px; height:150px; object-fit:cover; border-radius:4px;">
-                            <div style="flex-grow:1;">
-                                <h4 style="margin:0; color:white;">{movie.title}</h4>
-                                <p style="color:#aaa; font-size:14px;">{movie.genre} | {movie.duration} | {movie.rating}</p>
-                                <h4 style="color:#E50914;">{movie.price:,.0f} VND</h4>
-                            </div>
-                        </div>
-                    """, unsafe_allow_html=True)
-                    if st.button("ĐẶT NGAY", key=f"s_btn_{movie.id}"):
-                        st.session_state['selected_movie_id'] = movie.id; st.session_state['selected_seats'] = []; st.session_state['page'] = 'booking'; st.rerun()
-        else:
-            # GRID CAROUSEL
-            items_per_slide = 5 
-            total_movies = len(movies)
-            col_prev, col_display, col_next = st.columns([0.5, 10, 0.5])
-            
-            with col_prev:
-                st.markdown("<div style='height: 200px;'></div>", unsafe_allow_html=True)
-                if st.session_state['movie_index'] > 0:
-                    if st.button("◀", key="prev_slide"):
-                        st.session_state['movie_index'] = max(0, st.session_state['movie_index'] - items_per_slide); st.rerun()
-            
-            with col_display:
-                start_idx = st.session_state['movie_index']
-                end_idx = min(start_idx + items_per_slide, total_movies)
-                cols = st.columns(items_per_slide)
-                
-                for idx, movie in enumerate(movies[start_idx:end_idx]):
-                    with cols[idx]:
+        c1, c2 = st.columns([3, 1.5])
+        with c2:
+            col_in, col_btn = st.columns([5, 1])
+            search_query = col_in.text_input("Search", placeholder="🔍 Tìm tên phim...", key="manual_search_input", label_visibility="collapsed")
+            with col_btn:
+                if st.button("🎙️", key="mic_btn"):
+                    listening_placeholder.info("🎧 Đang nghe...")
+                    voice_text, error = self.voice_controller.get_voice_query()
+                    listening_placeholder.empty()
+                    if error: listening_placeholder.warning(error)
+                    else:
+                        st.session_state["voice_query"] = voice_text
+                        st.session_state["fill_from_voice"] = True
+                        st.rerun()
+
+        if search_query:
+            with c1:
+                st.markdown(f"##### Kết quả tìm kiếm cho: *'{search_query}'*")
+                recs = self.service.get_recommendations(search_query)
+                if isinstance(recs, pd.DataFrame):
+                    for _, row in recs.iterrows():
                         st.markdown(f"""
-                            <div class="movie-card-box">
-                                <div class="poster-frame"><img src="{movie.poster}"></div>
-                                <div class="movie-info">
-                                    <div class="movie-title">{movie.title}</div>
-                                    <div style="display:flex; justify-content:space-between; font-size:12px; color:#aaa;">
-                                        <span>{movie.genre}</span><span>{movie.rating}</span>
-                                    </div>
-                                </div>
-                            </div>
+                        <div class="rec-card">
+                            <div><span style="font-weight:bold; color:#FFD700;">{row['title']}</span> <span style="font-size:12px; color:#aaa;">({str(row['genres']).replace('|', ', ')})</span></div>
+                            <div style="color:#E50914; font-weight:bold;">⭐ {row['average_rating']:.1f}</div>
+                        </div>
                         """, unsafe_allow_html=True)
-                        if st.button("ĐẶT VÉ", key=f"grid_btn_{movie.id}", type="primary"):
-                            st.session_state['selected_movie_id'] = movie.id
-                            st.session_state['selected_seats'] = []
-                            st.session_state['page'] = 'booking'; st.rerun()
-            
-            with col_next:
-                st.markdown("<div style='height: 200px;'></div>", unsafe_allow_html=True)
-                if end_idx < total_movies:
-                    if st.button("▶", key="next_slide"):
-                        st.session_state['movie_index'] += items_per_slide; st.rerun()
+                elif isinstance(recs, list) and recs:
+                    st.warning(recs[0])
+
+        movies = self.service.get_all_movies()
+        items_per_slide = 5
+        total_movies = len(movies)
+        start_idx = st.session_state['movie_index']
+        end_idx = min(start_idx + items_per_slide, total_movies)
+        current_movies = movies[start_idx:end_idx]
+
+        col_prev, col_main, col_next = st.columns([0.2, 10, 0.2])
+        
+        with col_prev:
+            st.markdown("<br>"*8, unsafe_allow_html=True)
+            if start_idx > 0 and st.button("❮", key="prev"):
+                st.session_state['movie_index'] = max(0, start_idx - items_per_slide)
+                st.rerun()
+
+        with col_main:
+            cols = st.columns(items_per_slide)
+            for idx, movie in enumerate(current_movies):
+                with cols[idx]:
+                    if movie:
+                        with st.container():
+                            st.markdown(f"""
+                                <div class="movie-container">
+                                    <div class="movie-img-box"><img src="{movie.poster}"></div>
+                                    <div class="movie-title" title="{movie.title}">{movie.title}</div>
+                                    <div class="movie-meta"><span class="tag">{movie.genre.split(',')[0]}</span><span>{movie.rating.split('(')[0]}</span></div>
+                                </div>
+                            """, unsafe_allow_html=True)
+                            if st.button("ĐẶT VÉ", key=f"btn_{movie.id}"):
+                                st.session_state['selected_movie_id'] = movie.id
+                                st.session_state['selected_seats'] = []
+                                st.session_state['page'] = 'booking'
+                                st.rerun()
+
+        with col_next:
+            st.markdown("<br>"*8, unsafe_allow_html=True)
+            if end_idx < total_movies and st.button("❯", key="next"):
+                st.session_state['movie_index'] += items_per_slide
+                st.rerun()
 
     def render_booking(self):
-        movie = self.service.get_movie_by_id(st.session_state['selected_movie_id'])
-        if not movie: st.session_state['page']='home'; st.rerun(); return
-
         self.render_header()
-        st.markdown("<br>", unsafe_allow_html=True)
-        cL, cR = st.columns([1.5, 3])
+        
+        # Nhờ cache, movie ở đây sẽ không bị random lại thông tin
+        movie = self.service.get_movie_by_id(st.session_state['selected_movie_id'])
 
-        with cL:
-            c1, c2 = st.columns([1, 1.5])
-            c1.image(movie.poster, use_container_width=True)
-            with c2:
-                st.markdown(f"### {movie.title}")
-                st.write(f"🏷️ **{movie.price:,.0f} VND**")
-            d = st.selectbox("Ngày:", list(self.service.showtimes.keys()))
-            st.session_state['selected_date'] = d
-            t = st.radio("Suất chiếu:", self.service.showtimes[d], horizontal=True)
-            st.session_state['selected_time'] = t
-            st.markdown("<div class='bill-box'>", unsafe_allow_html=True)
-            seats = st.session_state['selected_seats']
-            total = len(seats) * movie.price
-            st.write(f"Ghế: {', '.join(seats) if seats else '---'}")
-            st.markdown(f"<h3 style='color:#E50914'>{total:,.0f} VND</h3>", unsafe_allow_html=True)
-            if seats:
-                if st.button("THANH TOÁN NGAY", type="primary"):
-                    if not st.session_state.get('current_user'):
-                        st.warning("Vui lòng đăng nhập!"); st.session_state['page']='auth'; st.rerun()
+        if not movie:
+            st.error("Không tìm thấy phim!")
+            if st.button("Quay lại"):
+                st.session_state['page'] = 'home'
+                st.rerun()
+            return
+
+        if st.button("⬅ Quay lại", key="back_home"):
+            st.session_state['page'] = 'home'
+            st.rerun()
+
+        col_L, col_R = st.columns([1, 2], gap="large")
+
+        with col_L:
+            st.markdown(f"""
+                <div style="background: rgba(255,255,255,0.05); padding: 20px; border-radius: 12px; display: flex; gap: 15px; border: 1px solid rgba(255,255,255,0.1);">
+                    <img src="{movie.poster}" style="width: 100px; border-radius: 8px;">
+                    <div><h3 style="margin: 0; color: #FFD700;">{movie.title}</h3><p style="font-size: 13px;">⏱ {movie.duration}</p></div>
+                </div>
+            """, unsafe_allow_html=True)
+
+            st.markdown("### 📅 CHỌN SUẤT CHIẾU")
+            days = list(self.service.showtimes.keys())
+            s_day = st.selectbox("Chọn Ngày", days, label_visibility="collapsed")
+            st.session_state['selected_date'] = s_day
+            times = self.service.showtimes.get(s_day, [])
+            s_time = st.radio("Chọn Giờ", times, horizontal=True)
+            st.session_state['selected_time'] = s_time
+
+            count = len(st.session_state['selected_seats'])
+            total = count * movie.price
+            
+            st.markdown(f"""
+            <div class="bill-box">
+                <div style="text-align: center; font-weight: 900;">RECEIPT</div>
+                <div style="display: flex; justify-content: space-between;"><span>Phim:</span> <strong>{movie.title[:15]}...</strong></div>
+                <div style="display: flex; justify-content: space-between;"><span>Ghế:</span> <strong>{', '.join(st.session_state['selected_seats']) if count else '--'}</strong></div>
+                <hr style="border-top: 2px solid #333;">
+                <div style="display: flex; justify-content: space-between; font-size: 20px; font-weight: bold; color: #E50914;"><span>TỔNG:</span> <span>{total:,.0f} đ</span></div>
+            </div>
+            """, unsafe_allow_html=True)
+
+            if count > 0:
+                st.write("")
+                # Logic thanh toán kiểm tra Login
+                if st.button("THANH TOÁN & XUẤT VÉ", type="primary"):
+                    if not st.session_state['is_logged_in']:
+                        st.warning("⚠️ Bạn cần đăng nhập để thanh toán!")
+                        et.sleep(1)
+                        st.session_state['pre_login_page'] = 'booking'
+                        st.session_state['page'] = 'login'
+                        st.rerun()
                     else:
-                        self.service.book_seats(movie.id, d, t, seats)
-                        st.success("Thành công!"); st.session_state['selected_seats']=[]; st.rerun()
-            st.markdown("</div>", unsafe_allow_html=True)
+                        if not check_availability(movie.id, s_day, s_time, st.session_state['selected_seats']):
+                            st.error("Ghế đã có người đặt!")
+                        else:
+                            save_booking(movie.id, s_day, s_time, st.session_state['selected_seats'])
+                            st.session_state['selected_seats'] = []
+                            st.balloons()
+                            st.success(f"Cảm ơn {st.session_state['username']}! Đặt vé thành công.")
+                            et.sleep(2)
+                            st.session_state['page'] = 'home'
+                            st.rerun()
 
-        with cR:
-            st.subheader("MÀN HÌNH")
-            st.markdown("<div class='screen-glow'></div>", unsafe_allow_html=True)
+        with col_R:
+            st.markdown("<div class='screen-container'><div class='screen'></div></div>", unsafe_allow_html=True)
             layout = self.service.get_seat_layout(movie.id, st.session_state['selected_date'], st.session_state['selected_time'])
             
-            for r, row in enumerate(layout):
-                cols = st.columns(8)
-                char = chr(65 + r)
-                for c, status in enumerate(row):
-                    seat_id = f"{char}{c+1}"
-                    with cols[c]:
-                        if status == 1:
-                            st.button(f"{seat_id}", key=seat_id, disabled=True)
-                        else:
-                            is_selected = seat_id in st.session_state['selected_seats']
-                            btn_type = "primary" if is_selected else "secondary"
-                            # div seat-container chỉ để giữ form, style chính nằm ở button[kind=...]
-                            st.markdown('<div class="seat-container">', unsafe_allow_html=True)
-                            if st.button(f"{seat_id}", key=seat_id, type=btn_type):
-                                if is_selected: st.session_state['selected_seats'].remove(seat_id)
-                                else: st.session_state['selected_seats'].append(seat_id)
-                                st.rerun()
-                            st.markdown('</div>', unsafe_allow_html=True)
-            st.write("")
-            cm1, cm2, cm3 = st.columns(3)
-            cm1.markdown("🟦 **Ghế trống** (Viền đỏ)")
-            cm2.markdown("🟥 **Đang chọn** (Đỏ đặc)")
-            cm3.markdown("⬛ **Đã bán** (Xám)")
+            # --- HIỂN THỊ SỐ GHẾ (YÊU CẦU 3) ---
+            with st.container():
+                for r, row in enumerate(layout):
+                    cols = st.columns([1] + [1]*8 + [1])
+                    for c, status in enumerate(row):
+                        seat_id = f"{chr(65 + r)}{c + 1}"
+                        with cols[c+1]:
+                            # Hiển thị mã ghế lên nút
+                            if status == 1: 
+                                st.button(f"{seat_id}", key=seat_id, disabled=True)
+                            elif seat_id in st.session_state['selected_seats']:
+                                if st.button(f"✅ {seat_id}", key=seat_id, type="primary"):
+                                    st.session_state['selected_seats'].remove(seat_id)
+                                    st.rerun()
+                            else:
+                                if st.button(f"{seat_id}", key=seat_id):
+                                    st.session_state['selected_seats'].append(seat_id)
+                                    st.rerun()
+            
+            st.markdown("<br><hr style='opacity: 0.2'>", unsafe_allow_html=True)
+            xc2, xc3, xc4 = st.columns([2,2,2])
+            with xc2: st.markdown("⬜ **Trống**")
+            with xc3: st.markdown("❌ **Đã bán**")
+            with xc4: st.markdown("✅ **Đang chọn**")
 
     def run(self):
-        if st.session_state['page'] == 'auth': self.render_auth()
-        elif st.session_state['page'] == 'booking': self.render_booking()
-        else: self.render_home()
+        if st.session_state['page'] == 'home':
+            self.render_home()
+        elif st.session_state['page'] == 'booking':
+            self.render_booking()
+        elif st.session_state['page'] == 'login':
+            self.render_login()
 
 if __name__ == "__main__":
     app = CinemaAppUI()
