@@ -30,12 +30,11 @@ POSTER_PLACEHOLDER = "https://placehold.co/400x600/png?text=No+Poster&font=robot
 # Danh sách ảnh Banner
 EVENT_BANNERS = [
     "https://www.cgv.vn/media/banner/cache/1/b58515f018eb873dafa430b6f9ae0c1e/9/8/980x448_17__5.jpg",
-    "https://iguov8nhvyobj.vcdn.cloud/media/banner/cache/1/b58515f018eb873dafa430b6f9ae0c1e/a/v/avatar3.jpg",
-    "https://iguov8nhvyobj.vcdn.cloud/media/banner/cache/1/b58515f018eb873dafa430b6f9ae0c1e/g/h/ghibli.jpg"
+    "https://media.lottecinemavn.com/Media/WebAdmin/4b2559e836174a7b973909774640498b.jpg",
+    "https://media.lottecinemavn.com/Media/WebAdmin/b689028882744782928340d8544df201.jpg"
 ]
 
 # --- 2. HÀM TẠO DỮ LIỆU ẢNH MẪU ---
-# (Giữ nguyên hàm này của bạn để đảm bảo không mất logic tạo file)
 def create_demo_image_file():
     """Tự động tạo file movie_images.csv chứa link ảnh thật."""
     if not os.path.exists(FILE_IMAGES):
@@ -183,66 +182,76 @@ class Movie:
         self.poster = poster
         self.price = price
 
-# --- SỬ DỤNG CACHE ĐỂ TRÁNH LỖI NHẢY THÔNG TIN (YÊU CẦU 2) ---
+# --- 4. XỬ LÝ DỮ LIỆU & CACHE ---
 @st.cache_resource
 def get_cached_data():
-    """Hàm này chỉ chạy 1 lần để tải và cố định thông tin phim (tránh random lại)."""
-    # 1. Tạo file ảnh nếu cần
+    """
+    Tải dữ liệu 1 lần duy nhất để:
+    1. Cố định danh sách phim hiển thị (tránh random giá/giờ lại mỗi khi render).
+    2. Load Full Dataset để phục vụ tìm kiếm.
+    """
     create_demo_image_file()
-
-    # 2. Tải dữ liệu gốc
-    df_movies = load_data()
+    df_movies = load_data() # Dữ liệu gốc (9000+ phim)
     recommender = None
-    movies_list = []
+    movies_list_ui = [] # Danh sách rút gọn 50 phim cho UI Carousel
 
     if not df_movies.empty:
-        # 3. Merge dữ liệu ảnh
+        # Merge dữ liệu ảnh
         if os.path.exists(FILE_IMAGES):
             try:
                 df_imgs = pd.read_csv(FILE_IMAGES)
                 df_movies['movieId'] = df_movies['movieId'].astype(int)
                 df_imgs['movieId'] = df_imgs['movieId'].astype(int)
                 df_movies = pd.merge(df_movies, df_imgs[['movieId', 'poster_url']], on='movieId', how='left')
-            except Exception as e:
-                st.error(f"Lỗi load ảnh: {e}")
+            except Exception:
                 df_movies['poster_url'] = None
         else:
             df_movies['poster_url'] = None
 
-        # 4. Train Model
+        # Train Model
         recommender = ContentBasedRecommender(df_movies)
 
-        # 5. Tạo danh sách Movie Object (CỐ ĐỊNH GIÁ & THỜI LƯỢNG TẠI ĐÂY)
+        # Tạo danh sách Movie cho Carousel (Top 50)
+        # Fix cứng thông tin ở đây để không bị nhảy khi rerender
         for index, row in df_movies.head(50).iterrows():
-            img_link = POSTER_PLACEHOLDER
-            if 'poster_url' in row and pd.notna(row['poster_url']) and str(row['poster_url']).strip() != "":
-                img_link = row['poster_url']
-            else:
-                safe_title = str(row['title']).split('(')[0].strip().replace(' ', '+')
-                img_link = f"https://placehold.co/400x600?text={safe_title}"
-
-            movies_list.append(Movie(
-                id=row['movieId'],
-                title=row['title'],
-                genre=str(row['genres']).replace('|', ', '),
-                duration=f"{random.randint(90, 160)}'", # Random 1 lần duy nhất
-                rating=f"⭐ {row['average_rating']:.1f}",
-                poster=img_link,
-                price=random.choice([90000, 105000, 120000, 150000]) # Random 1 lần duy nhất
-            ))
+            movies_list_ui.append(_create_movie_from_row(row))
             
-    if not movies_list:
-        movies_list = [Movie(1, "Phim Demo", "Hành động", "120p", "C18", POSTER_PLACEHOLDER, 100000)]
+    if not movies_list_ui:
+        movies_list_ui = [Movie(1, "Phim Demo", "Hành động", "120p", "C18", POSTER_PLACEHOLDER, 100000)]
 
-    return recommender, movies_list
+    return recommender, movies_list_ui, df_movies
 
-# --- 4. LỚP XỬ LÝ DỮ LIỆU & DỊCH VỤ (SERVICE) ---
+def _create_movie_from_row(row):
+    """Helper function để tạo Movie object từ 1 dòng dataframe."""
+    img_link = POSTER_PLACEHOLDER
+    if 'poster_url' in row and pd.notna(row['poster_url']) and str(row['poster_url']).strip() != "":
+        img_link = row['poster_url']
+    else:
+        safe_title = str(row['title']).split('(')[0].strip().replace(' ', '+')
+        img_link = f"https://placehold.co/400x600?text={safe_title}"
+
+    # Tạo giá và thời lượng giả lập (Dựa trên ID để cố định, không dùng random thuần túy)
+    random.seed(int(row['movieId'])) 
+    price = random.choice([90000, 105000, 120000, 150000])
+    duration = f"{random.randint(90, 160)}'"
+    
+    return Movie(
+        id=row['movieId'],
+        title=row['title'],
+        genre=str(row['genres']).replace('|', ', '),
+        duration=duration,
+        rating=f"⭐ {row['average_rating']:.1f}",
+        poster=img_link,
+        price=price
+    )
+
+# --- 5. LỚP DỊCH VỤ (SERVICE) ---
 class CinemaService:
     def __init__(self):
         self.showtimes = {}
         self.booked_seats_db = {}
-        # Lấy dữ liệu từ Cache
-        self.recommender, self.movies = get_cached_data()
+        # Lấy dữ liệu từ Cache: recommender, list hiển thị, và FULL DATA
+        self.recommender, self.movies, self.full_df = get_cached_data()
         self.load_or_build_virtual_backend()
 
     def load_or_build_virtual_backend(self):
@@ -260,8 +269,16 @@ class CinemaService:
         return self.movies
 
     def get_movie_by_id(self, id):
+        # 1. Tìm trong list 50 phim hiển thị trước
         for m in self.movies:
             if m.id == id: return m
+        
+        # 2. Nếu không thấy (do search ra phim cũ), tìm trong Full Dataset
+        if not self.full_df.empty:
+            row = self.full_df[self.full_df['movieId'] == id]
+            if not row.empty:
+                return _create_movie_from_row(row.iloc[0])
+        
         return None
 
     def get_seat_layout(self, m_id, d, t):
@@ -278,7 +295,7 @@ class CinemaService:
             return self.recommender.get_recommendations(title)
         return []
 
-# --- 5. LỚP GIAO DIỆN (UI) ---
+# --- 6. LỚP GIAO DIỆN (UI) ---
 class CinemaAppUI:
     def __init__(self):
         self.service = CinemaService()
@@ -308,15 +325,14 @@ class CinemaAppUI:
             h1, h2, h3, h4, h5, h6 { color: #FFFFFF !important; text-shadow: 0 2px 4px rgba(0,0,0,0.5); }
             p, label, span, div { color: #E0E0E0; }
 
-            /* --- HEADER TRONG SUỐT (YÊU CẦU 1) --- */
+            /* --- HEADER TRONG SUỐT --- */
             .header-container {
                 display: flex; justify-content: space-between; align-items: center;
                 padding: 10px 30px;
-                background: transparent; /* Trong suốt */
+                background: transparent;
                 border-bottom: 1px solid rgba(255, 255, 255, 0.1);
                 margin-bottom: 20px;
             }
-            /* Chỉnh các nút trong Header thành trong suốt */
             div[data-testid="stHorizontalBlock"] button {
                 background-color: transparent !important;
                 border: 1px solid rgba(255,255,255,0.2) !important;
@@ -343,14 +359,26 @@ class CinemaAppUI:
             .movie-img-box { border-radius: 8px; overflow: hidden; margin-bottom: 10px; aspect-ratio: 2/3; position: relative; }
             .movie-img-box img { width: 100%; height: 100%; object-fit: cover; }
             .movie-title { color: #FFF !important; font-size: 15px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+            .tag { background: #333; padding: 2px 6px; border-radius: 4px; font-size: 10px; color: #aaa; }
             
-            /* --- NÚT GHẾ SỐ (YÊU CẦU 3) --- */
-            /* Chỉnh nút ghế nhỏ gọn hơn */
+            /* --- NÚT GHẾ SỐ --- */
             div[data-testid="column"] button {
                 padding: 0px !important;
                 min-height: 45px !important;
                 font-size: 12px !important;
                 font-weight: bold !important;
+            }
+
+            /* --- KHUNG VIỀN CHO KẾT QUẢ TÌM KIẾM --- */
+            [data-testid="stBorder"] {
+                background-color: rgba(255, 255, 255, 0.05);
+                border-color: rgba(255, 255, 255, 0.1);
+                border-radius: 10px;
+                transition: transform 0.2s, border-color 0.2s;
+            }
+            [data-testid="stBorder"]:hover {
+                border-color: #E50914;
+                transform: scale(1.01);
             }
 
             /* BILL & LOGIN BOX */
@@ -375,7 +403,6 @@ class CinemaAppUI:
                     st.rerun()
             with c3: st.button("SỰ KIỆN", key="nav_event")
             
-            # Login Check cho nút Thành viên
             with c4:
                 if st.button("THÀNH VIÊN", key="nav_member"):
                     if st.session_state['is_logged_in']:
@@ -385,7 +412,6 @@ class CinemaAppUI:
                         st.session_state['page'] = 'login'
                         st.rerun()
 
-            # Trạng thái đăng nhập
             with c5:
                 if st.session_state['is_logged_in']:
                     if st.button(f"Đăng xuất ({st.session_state['username']})", key="logout_btn"):
@@ -454,18 +480,26 @@ class CinemaAppUI:
                         st.session_state["fill_from_voice"] = True
                         st.rerun()
 
+        # --- UI TÌM KIẾM (CÓ VIỀN - KHÔNG ẢNH) ---
         if search_query:
             with c1:
-                st.markdown(f"##### Kết quả tìm kiếm cho: *'{search_query}'*")
+                st.markdown(f"##### 🔎 Kết quả tìm kiếm cho: *'{search_query}'*")
                 recs = self.service.get_recommendations(search_query)
                 if isinstance(recs, pd.DataFrame):
                     for _, row in recs.iterrows():
-                        st.markdown(f"""
-                        <div class="rec-card">
-                            <div><span style="font-weight:bold; color:#FFD700;">{row['title']}</span> <span style="font-size:12px; color:#aaa;">({str(row['genres']).replace('|', ', ')})</span></div>
-                            <div style="color:#E50914; font-weight:bold;">⭐ {row['average_rating']:.1f}</div>
-                        </div>
-                        """, unsafe_allow_html=True)
+                        # Dùng Container Border=True để tạo khung viền đẹp
+                        with st.container(border=True):
+                            sc2, sc3 = st.columns([4, 1.5])
+                            with sc2:
+                                st.markdown(f"**{row['title']}**")
+                                st.caption(f"⭐ {row['average_rating']:.1f} | {str(row['genres']).replace('|', ', ')}")
+                            with sc3:
+                                st.write("") # Spacer
+                                if st.button("Đặt vé", key=f"s_btn_{row['movieId']}"):
+                                    st.session_state['selected_movie_id'] = row['movieId']
+                                    st.session_state['selected_seats'] = []
+                                    st.session_state['page'] = 'booking'
+                                    st.rerun()
                 elif isinstance(recs, list) and recs:
                     st.warning(recs[0])
 
@@ -512,7 +546,7 @@ class CinemaAppUI:
     def render_booking(self):
         self.render_header()
         
-        # Nhờ cache, movie ở đây sẽ không bị random lại thông tin
+        # Nhờ fallback trong CinemaService, phim nào cũng tìm thấy
         movie = self.service.get_movie_by_id(st.session_state['selected_movie_id'])
 
         if not movie:
@@ -590,7 +624,6 @@ class CinemaAppUI:
                     for c, status in enumerate(row):
                         seat_id = f"{chr(65 + r)}{c + 1}"
                         with cols[c+1]:
-                            # Hiển thị mã ghế lên nút
                             if status == 1: 
                                 st.button(f"{seat_id}", key=seat_id, disabled=True)
                             elif seat_id in st.session_state['selected_seats']:
