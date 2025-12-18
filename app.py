@@ -30,8 +30,8 @@ POSTER_PLACEHOLDER = "https://placehold.co/400x600/png?text=No+Poster&font=robot
 # Danh sách ảnh Banner
 EVENT_BANNERS = [
     "https://www.cgv.vn/media/banner/cache/1/b58515f018eb873dafa430b6f9ae0c1e/9/8/980x448_17__5.jpg",
-    "https://media.lottecinemavn.com/Media/WebAdmin/4b2559e836174a7b973909774640498b.jpg",
-    "https://media.lottecinemavn.com/Media/WebAdmin/b689028882744782928340d8544df201.jpg"
+    "https://iguov8nhvyobj.vcdn.cloud/media/banner/cache/1/b58515f018eb873dafa430b6f9ae0c1e/a/v/avatar3.jpg",
+    "https://iguov8nhvyobj.vcdn.cloud/media/banner/cache/1/b58515f018eb873dafa430b6f9ae0c1e/g/h/ghibli.jpg"
 ]
 
 # --- 2. HÀM TẠO DỮ LIỆU ẢNH MẪU ---
