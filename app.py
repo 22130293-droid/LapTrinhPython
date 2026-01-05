@@ -30,8 +30,8 @@ POSTER_PLACEHOLDER = "https://placehold.co/400x600/png?text=No+Poster&font=robot
 # Danh sách ảnh Banner
 EVENT_BANNERS = [
     "https://www.cgv.vn/media/banner/cache/1/b58515f018eb873dafa430b6f9ae0c1e/9/8/980x448_17__5.jpg",
-    "https://media.lottecinemavn.com/Media/WebAdmin/4b2559e836174a7b973909774640498b.jpg",
-    "https://media.lottecinemavn.com/Media/WebAdmin/b689028882744782928340d8544df201.jpg"
+    "https://iguov8nhvyobj.vcdn.cloud/media/banner/cache/1/b58515f018eb873dafa430b6f9ae0c1e/a/v/avatar3.jpg",
+    "https://iguov8nhvyobj.vcdn.cloud/media/banner/cache/1/b58515f018eb873dafa430b6f9ae0c1e/g/h/ghibli.jpg"
 ]
 
 # --- 2. HÀM TẠO DỮ LIỆU ẢNH MẪU ---
@@ -320,73 +320,152 @@ class CinemaAppUI:
     def inject_custom_css(self):
         st.markdown("""
             <style>
-            @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700;900&display=swap');
-            .stApp { background: linear-gradient(180deg, #0f0c29 0%, #302b63 50%, #24243e 100%); color: #FFFFFF; font-family: 'Roboto', sans-serif; }
-            h1, h2, h3, h4, h5, h6 { color: #FFFFFF !important; text-shadow: 0 2px 4px rgba(0,0,0,0.5); }
-            p, label, span, div { color: #E0E0E0; }
+            @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;600;800&family=Roboto:wght@300;400;700&display=swap');
+            
+            /* --- GLOBAL THEME --- */
+            .stApp { 
+                background: radial-gradient(circle at top, #1b1b2f 0%, #16213e 50%, #0f3460 100%); 
+                color: #FFFFFF; 
+                font-family: 'Montserrat', sans-serif; 
+            }
+            
+            h1, h2, h3, h4, h5, h6 { color: #FFFFFF !important; text-shadow: 0 4px 6px rgba(0,0,0,0.3); font-weight: 800 !important; }
+            p, span, div, label { color: #e0e0e0; }
 
-            /* --- HEADER TRONG SUỐT --- */
+            /* --- CUSTOM BUTTONS --- */
+            div.stButton > button {
+                background: linear-gradient(90deg, #e52d27 0%, #b31217 100%);
+                color: white !important;
+                border: none;
+                border-radius: 25px;
+                padding: 10px 24px;
+                font-weight: 600;
+                transition: all 0.3s ease;
+                box-shadow: 0 4px 15px rgba(229, 45, 39, 0.4);
+            }
+            div.stButton > button:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 6px 20px rgba(229, 45, 39, 0.6);
+            }
+            /* Nút phụ (Secondary) */
+            div.stButton > button[kind="secondary"] {
+                background: transparent;
+                border: 1px solid rgba(255,255,255,0.3);
+                box-shadow: none;
+            }
+
+            /* --- HEADER GLASSMORPHISM --- */
             .header-container {
                 display: flex; justify-content: space-between; align-items: center;
-                padding: 10px 30px;
-                background: transparent;
-                border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-                margin-bottom: 20px;
+                padding: 15px 30px;
+                background: rgba(255, 255, 255, 0.03);
+                backdrop-filter: blur(10px);
+                -webkit-backdrop-filter: blur(10px);
+                border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+                border-radius: 0 0 20px 20px;
+                margin-bottom: 30px;
+                box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
             }
-            div[data-testid="stHorizontalBlock"] button {
-                background-color: transparent !important;
-                border: 1px solid rgba(255,255,255,0.2) !important;
-                color: #EEE !important;
-                transition: 0.3s;
+            .logo { 
+                font-size: 32px; font-weight: 900; letter-spacing: 2px;
+                background: linear-gradient(to right, #ff416c, #ff4b2b); 
+                -webkit-background-clip: text; -webkit-text-fill-color: transparent; 
+                text-decoration: none !important; 
             }
-            div[data-testid="stHorizontalBlock"] button:hover {
-                background-color: rgba(229, 9, 20, 0.2) !important;
-                border-color: #E50914 !important;
-                color: #E50914 !important;
-            }
-            .logo { font-size: 28px; font-weight: 900; background: -webkit-linear-gradient(#E50914, #ff4b55); -webkit-background-clip: text; -webkit-text-fill-color: transparent; text-transform: uppercase; text-decoration: none !important; }
 
-            /* BANNER SLIDER */
-            .slider-frame { overflow: hidden; height: 380px; width: 100%; margin-bottom: 40px; border-radius: 16px; position: relative; box-shadow: 0 20px 50px rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.1); }
-            .slide-images { width: 300%; height: 100%; display: flex; animation: slide_animation 18s infinite; }
+            /* --- BANNER SLIDER (TỈ LỆ 21:9 - CINEMATIC) --- */
+            .slider-frame { 
+                overflow: hidden; 
+                width: 100%; 
+                aspect-ratio: 21/9; /* Tỉ lệ chuẩn điện ảnh */
+                max-height: 550px;
+                margin-bottom: 50px; 
+                border-radius: 20px; 
+                position: relative; 
+                box-shadow: 0 20px 50px rgba(0,0,0,0.5); 
+                border: 1px solid rgba(255,255,255,0.1); 
+            }
+            .slide-images { 
+                width: 300%; height: 100%; display: flex; 
+                animation: slide_animation 18s infinite cubic-bezier(0.45, 0, 0.55, 1); 
+            }
             .img-container { width: 100%; height: 100%; position: relative; }
-            .img-container img { width: 100%; height: 100%; object-fit: cover; filter: brightness(0.8); }
-            @keyframes slide_animation { 0% { margin-left: 0%; } 30% { margin-left: 0%; } 33% { margin-left: -100%; } 63% { margin-left: -100%; } 66% { margin-left: -200%; } 96% { margin-left: -200%; } 100% { margin-left: 0%; } }
-
-            /* MOVIE CARD */
-            .movie-container { background: rgba(30, 30, 30, 0.6); border-radius: 12px; padding: 10px; transition: transform 0.3s ease; border: 1px solid rgba(255, 255, 255, 0.05); height: 100%; }
-            .movie-container:hover { transform: translateY(-5px); border-color: #E50914; }
-            .movie-img-box { border-radius: 8px; overflow: hidden; margin-bottom: 10px; aspect-ratio: 2/3; position: relative; }
-            .movie-img-box img { width: 100%; height: 100%; object-fit: cover; }
-            .movie-title { color: #FFF !important; font-size: 15px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-            .tag { background: #333; padding: 2px 6px; border-radius: 4px; font-size: 10px; color: #aaa; }
+            .img-container img { 
+                width: 100%; height: 100%; 
+                object-fit: cover; /* Đảm bảo ảnh lấp đầy khung tỉ lệ 21:9 */
+                object-position: center 20%; 
+            }
             
-            /* --- NÚT GHẾ SỐ --- */
+            @keyframes slide_animation { 
+                0%, 28% { margin-left: 0%; } 
+                33%, 61% { margin-left: -100%; } 
+                66%, 94% { margin-left: -200%; } 
+                100% { margin-left: 0%; } 
+            }
+
+            /* --- MOVIE CARD UPGRADE --- */
+            .movie-container { 
+                background: rgba(255, 255, 255, 0.05); 
+                backdrop-filter: blur(5px);
+                border-radius: 16px; padding: 12px; 
+                transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); 
+                border: 1px solid rgba(255, 255, 255, 0.05); 
+                height: 100%; 
+                position: relative;
+                overflow: hidden;
+            }
+            .movie-container:hover { 
+                transform: translateY(-10px) scale(1.02); 
+                border-color: #ff4b2b; 
+                box-shadow: 0 15px 30px rgba(255, 75, 43, 0.2); 
+                background: rgba(255, 255, 255, 0.1);
+            }
+            .movie-img-box { 
+                border-radius: 12px; overflow: hidden; margin-bottom: 12px; 
+                aspect-ratio: 2/3; /* Tỉ lệ Poster Chuẩn */
+                position: relative; 
+            }
+            .movie-img-box img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.5s; }
+            .movie-container:hover .movie-img-box img { transform: scale(1.1); }
+            
+            .movie-title { font-family: 'Montserrat', sans-serif; font-size: 16px; font-weight: 700; margin-bottom: 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #FFF; }
+            .tag { background: rgba(255,255,255,0.1); padding: 4px 8px; border-radius: 6px; font-size: 11px; color: #bbb; border: 1px solid rgba(255,255,255,0.1); }
+
+            /* --- BOOKING SEATS --- */
             div[data-testid="column"] button {
                 padding: 0px !important;
-                min-height: 45px !important;
-                font-size: 12px !important;
-                font-weight: bold !important;
+                min-height: 40px !important;
+                border-radius: 8px 8px 15px 15px !important; /* Hình dáng ghế ngồi */
+                margin: 2px !important;
+                border: 1px solid rgba(255,255,255,0.2) !important;
             }
-
-            /* --- KHUNG VIỀN CHO KẾT QUẢ TÌM KIẾM --- */
-            [data-testid="stBorder"] {
-                background-color: rgba(255, 255, 255, 0.05);
-                border-color: rgba(255, 255, 255, 0.1);
-                border-radius: 10px;
-                transition: transform 0.2s, border-color 0.2s;
-            }
-            [data-testid="stBorder"]:hover {
-                border-color: #E50914;
-                transform: scale(1.01);
-            }
-
-            /* BILL & LOGIN BOX */
-            .bill-box { background: #FFF; color: #333 !important; padding: 20px; border-radius: 2px; border-top: 5px solid #E50914; margin-top: 20px; }
-            .bill-box div, .bill-box span { color: #333 !important; }
             
-            /* LOGIN FORM */
-            div[data-testid="stForm"] { background-color: rgba(255,255,255,0.05); padding: 30px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.1); }
+            /* --- FOOTER --- */
+            .footer {
+                margin-top: 80px;
+                padding: 40px 20px;
+                background: rgba(0,0,0,0.3);
+                border-top: 1px solid rgba(255,255,255,0.1);
+                text-align: center;
+                font-size: 14px;
+                color: #888;
+            }
+            .footer a { color: #ff4b2b; text-decoration: none; font-weight: bold; margin: 0 10px; transition: 0.3s; }
+            .footer a:hover { color: #fff; text-shadow: 0 0 10px #ff4b2b; }
+            .footer-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; max-width: 1000px; margin: 0 auto 30px auto; text-align: left; }
+            .footer-col h4 { color: #fff; margin-bottom: 15px; font-size: 16px; text-transform: uppercase; letter-spacing: 1px; }
+
+            /* --- INPUT FIELDS --- */
+            div[data-testid="stTextInput"] input {
+                background-color: rgba(255,255,255,0.1);
+                color: white;
+                border-radius: 10px;
+                border: 1px solid rgba(255,255,255,0.1);
+            }
+            div[data-testid="stTextInput"] input:focus {
+                border-color: #ff4b2b;
+                box-shadow: 0 0 10px rgba(255, 75, 43, 0.3);
+            }
             </style>
         """, unsafe_allow_html=True)
 
@@ -401,12 +480,12 @@ class CinemaAppUI:
                 if st.button("TRANG CHỦ", key="nav_home"): 
                     st.session_state['page'] = 'home'
                     st.rerun()
-            with c3: st.button("SỰ KIỆN", key="nav_event")
+            with c3: st.button("LỊCH CHIẾU", key="nav_event")
             
             with c4:
                 if st.button("THÀNH VIÊN", key="nav_member"):
                     if st.session_state['is_logged_in']:
-                        st.toast(f"Đang đăng nhập là: {st.session_state['username']}")
+                        st.toast(f"Xin chào: {st.session_state['username']}")
                     else:
                         st.session_state['pre_login_page'] = 'home'
                         st.session_state['page'] = 'login'
@@ -414,7 +493,7 @@ class CinemaAppUI:
 
             with c5:
                 if st.session_state['is_logged_in']:
-                    if st.button(f"Đăng xuất ({st.session_state['username']})", key="logout_btn"):
+                    if st.button(f"Logout ({st.session_state['username']})", key="logout_btn"):
                          st.session_state['is_logged_in'] = False
                          st.session_state['username'] = ""
                          st.rerun()
@@ -425,16 +504,52 @@ class CinemaAppUI:
                         st.rerun()
             st.markdown('</div>', unsafe_allow_html=True)
 
+    def render_footer(self):
+        st.markdown("""
+            <div class="footer">
+                <div class="footer-grid">
+                    <div class="footer-col">
+                        <h4>Về Start Cinema</h4>
+                        <p>Hệ thống rạp chiếu phim hiện đại hàng đầu với công nghệ AI gợi ý phim thông minh và trải nghiệm đặt vé mượt mà.</p>
+                    </div>
+                    <div class="footer-col">
+                        <h4>Liên kết nhanh</h4>
+                        <p><a href="#">Tuyển dụng</a></p>
+                        <p><a href="#">Điều khoản sử dụng</a></p>
+                        <p><a href="#">Chính sách bảo mật</a></p>
+                    </div>
+                    <div class="footer-col">
+                        <h4>Liên hệ</h4>
+                        <p>📍 Dĩ An, Bình Dương, Vietnam</p>
+                        <p>📞 1900 1234</p>
+                        <p>📧 support@startcinema.vn</p>
+                    </div>
+                </div>
+                <hr style="border-color: rgba(255,255,255,0.1); margin-bottom: 20px;">
+                <p>&copy; 2026 START CINEMA AI SYSTEM. All rights reserved.</p>
+                <div>
+                    <a href="#">Facebook</a> • <a href="#">Instagram</a> • <a href="#">Youtube</a>
+                </div>
+            </div>
+        """, unsafe_allow_html=True)
+
     def render_login(self):
         self.render_header()
         st.markdown("<br><br>", unsafe_allow_html=True)
         c1, c2, c3 = st.columns([1, 1, 1])
         with c2:
-            st.markdown("<h2 style='text-align: center; color: #E50914 !important;'>ĐĂNG NHẬP</h2>", unsafe_allow_html=True)
+            st.markdown("""
+                <div style="text-align: center; margin-bottom: 20px;">
+                    <h2 style="background: linear-gradient(to right, #ff416c, #ff4b2b); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">WELCOME BACK</h2>
+                    <p>Vui lòng đăng nhập để tiếp tục</p>
+                </div>
+            """, unsafe_allow_html=True)
+            
             with st.form("login_form"):
                 username = st.text_input("Tên đăng nhập", placeholder="admin")
                 password = st.text_input("Mật khẩu", type="password", placeholder="123")
-                submitted = st.form_submit_button("ĐĂNG NHẬP", type="primary", use_container_width=True)
+                st.markdown("<br>", unsafe_allow_html=True)
+                submitted = st.form_submit_button("ĐĂNG NHẬP NGAY", type="primary", use_container_width=True)
                 
                 if submitted:
                     if username == TEST_USER and password == TEST_PASS:
@@ -450,11 +565,12 @@ class CinemaAppUI:
     def render_home(self):
         self.render_header()
         
+        # SLIDER HTML
         imgs_html = "".join([f'<div class="img-container"><img src="{url}"></div>' for url in EVENT_BANNERS])
         st.markdown(f"""
             <div class="slider-frame">
                 <div class="slide-images">{imgs_html}</div>
-                <div style="position: absolute; top:0; left:0; width:100%; height:100%; background: linear-gradient(0deg, rgba(15,12,41,1) 0%, rgba(0,0,0,0) 50%);"></div>
+                <div style="position: absolute; top:0; left:0; width:100%; height:100%; background: linear-gradient(180deg, rgba(27,27,47,0.2) 0%, rgba(27,27,47,0) 50%, rgba(15,52,96,0.6) 100%); pointer-events: none;"></div>
             </div>
         """, unsafe_allow_html=True)
 
@@ -463,7 +579,7 @@ class CinemaAppUI:
             st.session_state["manual_search_input"] = st.session_state["voice_query"]
             st.session_state["fill_from_voice"] = False
 
-        st.markdown("<h3 style='margin-bottom: 20px; border-left: 5px solid #E50914; padding-left: 10px;'>🔥 PHIM ĐANG CHIẾU</h3>", unsafe_allow_html=True)
+        st.markdown("<h3 style='margin-bottom: 20px; border-left: 5px solid #ff4b2b; padding-left: 15px; text-transform: uppercase; letter-spacing: 1px;'>🔥 Phim Đang Chiếu</h3>", unsafe_allow_html=True)
         
         c1, c2 = st.columns([3, 1.5])
         with c2:
@@ -480,14 +596,13 @@ class CinemaAppUI:
                         st.session_state["fill_from_voice"] = True
                         st.rerun()
 
-        # --- UI TÌM KIẾM (CÓ VIỀN - KHÔNG ẢNH) ---
+        # --- UI TÌM KIẾM ---
         if search_query:
             with c1:
                 st.markdown(f"##### 🔎 Kết quả tìm kiếm cho: *'{search_query}'*")
                 recs = self.service.get_recommendations(search_query)
                 if isinstance(recs, pd.DataFrame):
                     for _, row in recs.iterrows():
-                        # Dùng Container Border=True để tạo khung viền đẹp
                         with st.container(border=True):
                             sc2, sc3 = st.columns([4, 1.5])
                             with sc2:
@@ -524,14 +639,19 @@ class CinemaAppUI:
                 with cols[idx]:
                     if movie:
                         with st.container():
+                            # Dùng HTML để render Card đẹp hơn
                             st.markdown(f"""
                                 <div class="movie-container">
                                     <div class="movie-img-box"><img src="{movie.poster}"></div>
                                     <div class="movie-title" title="{movie.title}">{movie.title}</div>
-                                    <div class="movie-meta"><span class="tag">{movie.genre.split(',')[0]}</span><span>{movie.rating.split('(')[0]}</span></div>
+                                    <div class="movie-meta">
+                                        <span class="tag">{movie.genre.split(',')[0]}</span>
+                                        <span style="float: right; color: #ffeb3b; font-weight: bold;">{movie.rating}</span>
+                                    </div>
                                 </div>
                             """, unsafe_allow_html=True)
-                            if st.button("ĐẶT VÉ", key=f"btn_{movie.id}"):
+                            st.write("")
+                            if st.button("ĐẶT VÉ", key=f"btn_{movie.id}", use_container_width=True):
                                 st.session_state['selected_movie_id'] = movie.id
                                 st.session_state['selected_seats'] = []
                                 st.session_state['page'] = 'booking'
@@ -546,7 +666,6 @@ class CinemaAppUI:
     def render_booking(self):
         self.render_header()
         
-        # Nhờ fallback trong CinemaService, phim nào cũng tìm thấy
         movie = self.service.get_movie_by_id(st.session_state['selected_movie_id'])
 
         if not movie:
@@ -556,17 +675,24 @@ class CinemaAppUI:
                 st.rerun()
             return
 
-        if st.button("⬅ Quay lại", key="back_home"):
+        if st.button("⬅ QUAY LẠI TRANG CHỦ", key="back_home"):
             st.session_state['page'] = 'home'
             st.rerun()
-
+        
+        st.markdown("<br>", unsafe_allow_html=True)
         col_L, col_R = st.columns([1, 2], gap="large")
 
         with col_L:
+            # INFO BOX
             st.markdown(f"""
-                <div style="background: rgba(255,255,255,0.05); padding: 20px; border-radius: 12px; display: flex; gap: 15px; border: 1px solid rgba(255,255,255,0.1);">
-                    <img src="{movie.poster}" style="width: 100px; border-radius: 8px;">
-                    <div><h3 style="margin: 0; color: #FFD700;">{movie.title}</h3><p style="font-size: 13px;">⏱ {movie.duration}</p></div>
+                <div style="background: rgba(255,255,255,0.05); padding: 25px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.1); backdrop-filter: blur(10px);">
+                    <div style="display: flex; gap: 20px; align-items: center;">
+                        <img src="{movie.poster}" style="width: 110px; border-radius: 12px; box-shadow: 0 5px 15px rgba(0,0,0,0.5);">
+                        <div>
+                            <h2 style="margin: 0; font-size: 24px; background: linear-gradient(to right, #ff9966, #ff5e62); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">{movie.title}</h2>
+                            <p style="margin-top: 10px; font-size: 14px; color: #aaa;">⏱ Thời lượng: {movie.duration}<br>🎭 Thể loại: {movie.genre}</p>
+                        </div>
+                    </div>
                 </div>
             """, unsafe_allow_html=True)
 
@@ -574,6 +700,8 @@ class CinemaAppUI:
             days = list(self.service.showtimes.keys())
             s_day = st.selectbox("Chọn Ngày", days, label_visibility="collapsed")
             st.session_state['selected_date'] = s_day
+            
+            st.markdown("---")
             times = self.service.showtimes.get(s_day, [])
             s_time = st.radio("Chọn Giờ", times, horizontal=True)
             st.session_state['selected_time'] = s_time
@@ -581,20 +709,34 @@ class CinemaAppUI:
             count = len(st.session_state['selected_seats'])
             total = count * movie.price
             
+            # BILL BOX CAO CẤP
             st.markdown(f"""
-            <div class="bill-box">
-                <div style="text-align: center; font-weight: 900;">RECEIPT</div>
-                <div style="display: flex; justify-content: space-between;"><span>Phim:</span> <strong>{movie.title[:15]}...</strong></div>
-                <div style="display: flex; justify-content: space-between;"><span>Ghế:</span> <strong>{', '.join(st.session_state['selected_seats']) if count else '--'}</strong></div>
-                <hr style="border-top: 2px solid #333;">
-                <div style="display: flex; justify-content: space-between; font-size: 20px; font-weight: bold; color: #E50914;"><span>TỔNG:</span> <span>{total:,.0f} đ</span></div>
+            <div style="background: white; color: #333; padding: 25px; border-radius: 15px; margin-top: 30px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); position: relative; overflow: hidden;">
+                <div style="position: absolute; top: 0; left: 0; width: 100%; height: 5px; background: linear-gradient(90deg, #ff416c, #ff4b2b);"></div>
+                <div style="text-align: center; font-weight: 900; letter-spacing: 2px; font-size: 18px; margin-bottom: 20px; color: #16213e;">TICKET RECEIPT</div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                    <span style="color: #666;">Phim</span>
+                    <strong style="color: #333;">{movie.title[:18]}...</strong>
+                </div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                    <span style="color: #666;">Ghế</span>
+                    <strong style="color: #333;">{', '.join(st.session_state['selected_seats']) if count else '--'}</strong>
+                </div>
+                 <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                    <span style="color: #666;">Giá vé</span>
+                    <strong style="color: #333;">{movie.price:,.0f} đ</strong>
+                </div>
+                <hr style="border-top: 2px dashed #ccc; margin: 15px 0;">
+                <div style="display: flex; justify-content: space-between; font-size: 24px; font-weight: 800;">
+                    <span style="color: #16213e;">TỔNG</span>
+                    <span style="color: #ff4b2b;">{total:,.0f} đ</span>
+                </div>
             </div>
             """, unsafe_allow_html=True)
 
             if count > 0:
                 st.write("")
-                # Logic thanh toán kiểm tra Login
-                if st.button("THANH TOÁN & XUẤT VÉ", type="primary"):
+                if st.button("💳 THANH TOÁN NGAY", type="primary", use_container_width=True):
                     if not st.session_state['is_logged_in']:
                         st.warning("⚠️ Bạn cần đăng nhập để thanh toán!")
                         et.sleep(1)
@@ -608,26 +750,38 @@ class CinemaAppUI:
                             save_booking(movie.id, s_day, s_time, st.session_state['selected_seats'])
                             st.session_state['selected_seats'] = []
                             st.balloons()
-                            st.success(f"Cảm ơn {st.session_state['username']}! Đặt vé thành công.")
+                            st.success(f"Cảm ơn {st.session_state['username']}! Vé đã được gửi tới email.")
                             et.sleep(2)
                             st.session_state['page'] = 'home'
                             st.rerun()
 
         with col_R:
-            st.markdown("<div class='screen-container'><div class='screen'></div></div>", unsafe_allow_html=True)
+            # MÀN HÌNH CONG
+            st.markdown("""
+                <div style="perspective: 1000px; margin-bottom: 40px; text-align: center;">
+                    <div style="
+                        width: 80%; margin: 0 auto; height: 10px; 
+                        background: #fff; 
+                        box-shadow: 0 20px 50px rgba(255,255,255,0.2); 
+                        border-radius: 50%; 
+                        transform: rotateX(-5deg);">
+                    </div>
+                    <div style="margin-top: 10px; color: #666; font-size: 12px; letter-spacing: 5px;">MÀN HÌNH</div>
+                </div>
+            """, unsafe_allow_html=True)
+            
             layout = self.service.get_seat_layout(movie.id, st.session_state['selected_date'], st.session_state['selected_time'])
             
-            # --- HIỂN THỊ SỐ GHẾ (YÊU CẦU 3) ---
             with st.container():
                 for r, row in enumerate(layout):
-                    cols = st.columns([1] + [1]*8 + [1])
+                    cols = st.columns([1.5] + [1]*8 + [1.5]) # Căn giữa lưới ghế
                     for c, status in enumerate(row):
                         seat_id = f"{chr(65 + r)}{c + 1}"
                         with cols[c+1]:
                             if status == 1: 
                                 st.button(f"{seat_id}", key=seat_id, disabled=True)
                             elif seat_id in st.session_state['selected_seats']:
-                                if st.button(f"✅ {seat_id}", key=seat_id, type="primary"):
+                                if st.button(f"✓ {seat_id}", key=seat_id, type="primary"):
                                     st.session_state['selected_seats'].remove(seat_id)
                                     st.rerun()
                             else:
@@ -635,11 +789,11 @@ class CinemaAppUI:
                                     st.session_state['selected_seats'].append(seat_id)
                                     st.rerun()
             
-            st.markdown("<br><hr style='opacity: 0.2'>", unsafe_allow_html=True)
-            xc2, xc3, xc4 = st.columns([2,2,2])
+            st.markdown("<br><br>", unsafe_allow_html=True)
+            xc1, xc2, xc3, xc4, xc5 = st.columns([1, 2, 2, 2, 1])
             with xc2: st.markdown("⬜ **Trống**")
-            with xc3: st.markdown("❌ **Đã bán**")
-            with xc4: st.markdown("✅ **Đang chọn**")
+            with xc3: st.markdown("🔒 **Đã đặt**")
+            with xc4: st.markdown("🔴 **Đang chọn**")
 
     def run(self):
         if st.session_state['page'] == 'home':
@@ -648,6 +802,9 @@ class CinemaAppUI:
             self.render_booking()
         elif st.session_state['page'] == 'login':
             self.render_login()
+        
+        # Gọi Footer ở cuối mọi trang
+        self.render_footer()
 
 if __name__ == "__main__":
     app = CinemaAppUI()
