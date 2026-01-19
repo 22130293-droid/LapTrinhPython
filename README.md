@@ -26,6 +26,9 @@ Frontend Developer
    + Kích hoạt môi trường: .\venv\Scripts\activate
    + Run: streamlit run app.py
 )
+-Cài đặt thư viện SpeechRecognition.(
+   + pip install SpeechRecognition
+)
 - Thiết kế UI sơ đồ ghế ngồi (Grid layout).
 - Tích hợp code của TV2 vào ứng dụng chính (app.py).
 - Tìm kiếm hình ảnh/poster phim để làm đẹp giao diện.
