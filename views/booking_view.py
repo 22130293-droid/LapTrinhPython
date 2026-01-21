@@ -1,10 +1,10 @@
-# views/booking_view.py
 import streamlit as st
 import time as et
 from booking_and_voice_search.booking_serveice import check_availability, save_booking
+from streamlit_extras.stylable_container import stylable_container
 
 def render_booking(service):
-    # Lấy thông tin phim đang chọn từ session_state
+    # --- 1. KIỂM TRA DỮ LIỆU ---
     if not st.session_state.get('selected_movie_id'):
         st.error("Chưa chọn phim nào!")
         if st.button("Quay lại trang chủ"):
@@ -12,14 +12,11 @@ def render_booking(service):
             st.rerun()
         return
 
-    # Lấy object movie từ service
     movie = service.get_movie_by_id(st.session_state['selected_movie_id'])
-
     if not movie:
-        st.error("Không tìm thấy thông tin phim!")
-        if st.button("Quay lại"):
-            st.session_state['page'] = 'home'
-            st.rerun()
+        st.error("Không tìm thấy phim!")
+        st.session_state['page'] = 'home'
+        st.rerun()
         return
 
     if st.button("⬅ QUAY LẠI TRANG CHỦ", key="back_home"):
@@ -27,62 +24,57 @@ def render_booking(service):
         st.rerun()
 
     st.markdown("<br>", unsafe_allow_html=True)
-    col_L, col_R = st.columns([1, 2], gap="large")
+    # Chia cột 1.3 - 2.5 để nút thanh toán không bị lỗi chữ
+    col_L, col_R = st.columns([1.3, 2.5], gap="large")
 
+    # --- 2. CỘT TRÁI: THÔNG TIN & THANH TOÁN ---
     with col_L:
-        # INFO BOX - Hiển thị thông tin phim
         st.markdown(f"""
-            <div style="background: rgba(255,255,255,0.05); padding: 25px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.1); backdrop-filter: blur(10px);">
-                <div style="display: flex; gap: 20px; align-items: center;">
-                    <img src="{movie.poster}" style="width: 110px; border-radius: 12px; box-shadow: 0 5px 15px rgba(0,0,0,0.5);">
+            <div style="background: rgba(255,255,255,0.05); padding: 20px; border-radius: 15px; border: 1px solid rgba(255,255,255,0.1); backdrop-filter: blur(10px);">
+                <div style="display: flex; gap: 15px; align-items: start;">
+                    <img src="{movie.poster}" style="width: 90px; border-radius: 8px;">
                     <div>
-                        <h2 style="margin: 0; font-size: 24px; background: linear-gradient(to right, #ff9966, #ff5e62); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">{movie.title}</h2>
-                        <p style="margin-top: 10px; font-size: 14px; color: #aaa;">⏱ Thời lượng: {movie.duration}<br>🎭 Thể loại: {movie.genre}</p>
+                        <h3 style="margin: 0; font-size: 20px;">{movie.title}</h3>
+                        <p style="margin: 5px 0; font-size: 13px; color: #aaa;">⏱ {movie.duration} | 🎭 {movie.genre}</p>
                     </div>
                 </div>
             </div>
         """, unsafe_allow_html=True)
 
-        st.markdown("📅 CHỌN SUẤT CHIẾU")
-        # Lấy lịch chiếu từ service
+        st.markdown("### 📅 SUẤT CHIẾU")
         days = list(service.showtimes.keys())
-        # Nếu chưa có ngày chọn, mặc định ngày đầu tiên
-        if 'selected_date' not in st.session_state or st.session_state['selected_date'] not in days:
-            st.session_state['selected_date'] = days[0]
-
+        if 'selected_date' not in st.session_state: st.session_state['selected_date'] = days[0]
         s_day = st.selectbox("Chọn Ngày", days, index=days.index(st.session_state['selected_date']), label_visibility="collapsed")
         st.session_state['selected_date'] = s_day
 
-        st.markdown("---")
+        st.write("")
         times = service.showtimes.get(s_day, [])
         s_time = st.radio("Chọn Giờ", times, horizontal=True)
         st.session_state['selected_time'] = s_time
 
-        # Tính tiền
-        count = len(st.session_state['selected_seats'])
-        total = count * movie.price
+        seats = st.session_state['selected_seats']
+        count = len(seats)
 
-        # BILL BOX - Hóa đơn
+        # Logic VIP: Hàng C-E, Cột 3-6
+        def is_vip(seat_code):
+            row_char = seat_code[0]
+            col_num = int(seat_code[1:])
+            return row_char in ['C', 'D', 'E'] and (3 <= col_num <= 6)
+
+        total_price = sum([movie.price + (15000 if is_vip(s) else 0) for s in seats])
+
         st.markdown(f"""
-        <div style="background: white; color: #333; padding: 25px; border-radius: 15px; margin-top: 30px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); position: relative; overflow: hidden;">
-            <div style="position: absolute; top: 0; left: 0; width: 100%; height: 5px; background: linear-gradient(90deg, #ff416c, #ff4b2b);"></div>
-            <div style="text-align: center; font-weight: 900; letter-spacing: 2px; font-size: 18px; margin-bottom: 20px; color: #16213e;">TICKET RECEIPT</div>
-            <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
-                <span style="color: #666;">Phim</span>
-                <strong style="color: #333;">{movie.title[:18]}...</strong>
+        <div style="background: white; color: #333; padding: 20px; border-radius: 15px; margin-top: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.2);">
+            <div style="text-align: center; font-weight: 800; letter-spacing: 2px; font-size: 16px; margin-bottom: 15px; color: #16213e;">TICKET INFO</div>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                <span style="color:#666;">Phim</span><strong>{movie.title[:15]}...</strong>
             </div>
-            <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
-                <span style="color: #666;">Ghế</span>
-                <strong style="color: #333;">{', '.join(st.session_state['selected_seats']) if count else '--'}</strong>
-            </div>
-             <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
-                <span style="color: #666;">Giá vé</span>
-                <strong style="color: #333;">{movie.price:,.0f} đ</strong>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                <span style="color:#666;">Ghế</span><strong>{', '.join(seats) if count else '--'}</strong>
             </div>
             <hr style="border-top: 2px dashed #ccc; margin: 15px 0;">
             <div style="display: flex; justify-content: space-between; font-size: 24px; font-weight: 800;">
-                <span style="color: #16213e;">TỔNG</span>
-                <span style="color: #ff4b2b;">{total:,.0f} đ</span>
+                <span>TỔNG</span><span style="color: #d63031;">{total_price:,.0f} đ</span>
             </div>
         </div>
         """, unsafe_allow_html=True)
@@ -91,63 +83,122 @@ def render_booking(service):
             st.write("")
             if st.button("💳 THANH TOÁN NGAY", type="primary", use_container_width=True):
                 if not st.session_state.get('is_logged_in'):
-                    st.warning("⚠️ Bạn cần đăng nhập để thanh toán!")
+                    st.warning("⚠️ Vui lòng đăng nhập!")
                     et.sleep(1)
                     st.session_state['pre_login_page'] = 'booking'
                     st.session_state['page'] = 'login'
                     st.rerun()
                 else:
-                    # Kiểm tra ghế trống
-                    if not check_availability(movie.id, s_day, s_time, st.session_state['selected_seats']):
-                        st.error("Ghế đã có người đặt! Vui lòng chọn ghế khác.")
+                    if not check_availability(movie.id, s_day, s_time, seats):
+                        st.error("Ghế đã có người đặt!")
                     else:
-                        # Lưu booking
-                        save_booking(movie.id, s_day, s_time, st.session_state['selected_seats'])
+                        save_booking(movie.id, s_day, s_time, seats)
                         st.session_state['selected_seats'] = []
                         st.balloons()
-                        st.success(f"Cảm ơn {st.session_state['username']}! Vé đã được gửi tới email.")
+                        st.success("Đặt vé thành công!")
                         et.sleep(2)
                         st.session_state['page'] = 'home'
                         st.rerun()
 
+    # --- 3. CỘT PHẢI: MÀN HÌNH & LƯỚI GHẾ ---
     with col_R:
-        # MÀN HÌNH CONG GIẢ LẬP
         st.markdown("""
-            <div style="perspective: 1000px; margin-bottom: 40px; text-align: center;">
-                <div style="
-                    width: 80%; margin: 0 auto; height: 10px; 
-                    background: #fff; 
-                    box-shadow: 0 20px 50px rgba(255,255,255,0.2); 
-                    border-radius: 50%; 
-                    transform: rotateX(-5deg);">
-                </div>
-                <div style="margin-top: 10px; color: #666; font-size: 12px; letter-spacing: 5px;">MÀN HÌNH</div>
+            <div style="perspective: 600px; margin-bottom: 30px; text-align: center;">
+                <div style="width: 70%; margin: 0 auto; height: 6px; background: #e0e0e0; box-shadow: 0 15px 40px rgba(255,255,255,0.6); border-radius: 50%; transform: rotateX(-20deg);"></div>
+                <div style="margin-top: 15px; color: #888; font-size: 11px; letter-spacing: 4px;">MÀN HÌNH</div>
             </div>
         """, unsafe_allow_html=True)
 
-        # Lấy sơ đồ ghế từ service
         layout = service.get_seat_layout(movie.id, st.session_state['selected_date'], st.session_state['selected_time'])
 
-        # Vẽ ghế
-        with st.container():
+        # Tạo khung bao quanh vùng chọn ghế
+        st.markdown('<div style="border: 2px dashed rgba(255,255,255,0.1); border-radius: 12px; padding: 15px; width: fit-content; margin: 0 auto;">', unsafe_allow_html=True)
+
+        # --- CSS GỐC CHO LƯỚI GHẾ (Đảm bảo tỷ lệ 48x40px) ---
+        with stylable_container(
+                key="seat_grid_fixed",
+                css_styles="""
+                button {
+                    width: 48px !important;
+                    height: 40px !important;
+                    padding: 0 !important;
+                    margin: 3px 0 !important;
+                    border-radius: 8px !important;
+                    border: 1px solid rgba(255,255,255,0.3) !important;
+                    background-color: transparent !important;
+                    color: white !important;
+                    transition: all 0.2s;
+                }
+                button:hover {
+                    border-color: #ff4b2b !important;
+                    background-color: rgba(255, 255, 255, 0.1) !important;
+                    transform: scale(1.1);
+                }
+                button[kind="primary"] {
+                    background-color: #2ecc71 !important;
+                    border-color: #27ae60 !important;
+                    box-shadow: 0 0 10px #2ecc71 !important;
+                }
+                button:disabled {
+                    background-color: #383838 !important;
+                    border: 1px solid #444 !important;
+                    color: #666 !important;
+                    opacity: 1 !important;
+                    cursor: not-allowed;
+                }
+            """
+        ):
             for r, row in enumerate(layout):
-                cols = st.columns([1.5] + [1]*8 + [1.5]) # Căn giữa lưới ghế
+                cols = st.columns([0.5] + [1]*8 + [0.5])
                 for c, status in enumerate(row):
                     seat_id = f"{chr(65 + r)}{c + 1}"
-                    with cols[c+1]:
-                        if status == 1:
-                            st.button(f"{seat_id}", key=seat_id, disabled=True)
-                        elif seat_id in st.session_state['selected_seats']:
-                            if st.button(f"✓ {seat_id}", key=seat_id, type="primary"):
-                                st.session_state['selected_seats'].remove(seat_id)
-                                st.rerun()
-                        else:
-                            if st.button(f"{seat_id}", key=seat_id):
-                                st.session_state['selected_seats'].append(seat_id)
-                                st.rerun()
+                    # Logic xác định ghế VIP (Hàng C-E, Cột 3-6)
+                    is_vip_seat = (chr(65 + r) in ['C', 'D', 'E']) and (3 <= (c + 1) <= 6)
 
-        st.markdown("<br><br>", unsafe_allow_html=True)
-        xc1, xc2, xc3, xc4, xc5 = st.columns([1, 2, 2, 2, 1])
-        with xc2: st.markdown("⬜ **Trống**")
-        with xc3: st.markdown("🔒 **Đã đặt**")
-        with xc4: st.markdown("🔴 **Đang chọn**")
+                    with cols[c+1]:
+                        # --- NẾU LÀ GHẾ VIP: Bọc thêm lớp CSS viền vàng ---
+                        if is_vip_seat:
+                            with stylable_container(
+                                    key=f"vip_{seat_id}",
+                                    css_styles="""
+                                    button {
+                                        border: 2px solid #f1c40f !important; /* VIỀN VÀNG */
+                                        color: #f1c40f !important; /* Chữ vàng */
+                                    }
+                                    button:hover {
+                                        box-shadow: 0 0 10px #f1c40f !important;
+                                    }
+                                """
+                            ):
+                                if status == 1:
+                                    st.button(f"{seat_id}", key=seat_id, disabled=True)
+                                elif seat_id in seats:
+                                    if st.button(f"{seat_id}", key=seat_id, type="primary"):
+                                        st.session_state['selected_seats'].remove(seat_id)
+                                        st.rerun()
+                                else:
+                                    if st.button(f"{seat_id}", key=seat_id):
+                                        st.session_state['selected_seats'].append(seat_id)
+                                        st.rerun()
+                        # --- GHẾ THƯỜNG ---
+                        else:
+                            if status == 1:
+                                st.button(f"{seat_id}", key=seat_id, disabled=True)
+                            elif seat_id in seats:
+                                if st.button(f"{seat_id}", key=seat_id, type="primary"):
+                                    st.session_state['selected_seats'].remove(seat_id)
+                                    st.rerun()
+                            else:
+                                if st.button(f"{seat_id}", key=seat_id):
+                                    st.session_state['selected_seats'].append(seat_id)
+                                    st.rerun()
+
+        st.markdown('</div>', unsafe_allow_html=True)
+
+        st.markdown("<br>", unsafe_allow_html=True)
+        # Chú thích thêm màu VIP
+        xc1, xc2, xc3, xc4, xc5 = st.columns([1, 1.5, 1.5, 1.5, 1.5])
+        with xc2: st.markdown("⬜ **Thường**")
+        with xc3: st.markdown("🟨 **Vùng VIP**") # Chú thích cho vùng trung tâm
+        with xc4: st.markdown("⬛ **Đã đặt**")
+        with xc5: st.markdown("🟢 **Đang chọn**")
