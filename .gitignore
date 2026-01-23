@@ -9,7 +9,7 @@ env/
 __pycache__/
 *.pyc
 
-# Dataset lớn
+
 # large_dataset.csv
 # Data Cache files
 data/cleaned_data.csv

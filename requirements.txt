@@ -1,11 +1,20 @@
-# Thư viện xử lý dữ liệu & AI (Thành viên 1)
+# --- Thư viện xử lý dữ liệu & AI (Thành viên 1) ---
 pandas
 scikit-learn
 numpy
+plotly          # Quan trọng: Dùng để vẽ biểu đồ trong Admin Dashboard
 
-# Thư viện Frontend & Web (Thành viên 3)
+# --- Thư viện Frontend & Web (Thành viên 3) ---
 streamlit
 requests
 
-# Thư viện Voice AI (Thành viên 2)
+# --- Thư viện Voice AI & Booking (Thành viên 2) ---
 openai-whisper
+# Nếu module Voice của bạn dùng thư viện gTTS hoặc SpeechRecognition, hãy thêm vào đây:
+# gTTS
+# SpeechRecognition
+
+# --- Thư viện hỗ trợ hệ thống ---
+# (Thường có sẵn trong Python nhưng ghi vào đây cho chắc chắn)
+# os-sys (không cần ghi)
+# sqlite3 (đã tích hợp sẵn trong Python)

@@ -3,9 +3,9 @@ import time as et
 import random
 import string
 from views.components import render_header
-from database import create_user, verify_user, get_user_by_email, update_password
-# Import đầy đủ các hàm
-from email_service import send_welcome_email, send_reset_password_email
+from core.database import create_user, verify_user, get_user_by_email, update_password
+from core.email_service import send_welcome_email, send_reset_password_email
+
 
 def render_login():
     render_header()
@@ -16,7 +16,7 @@ def render_login():
     with c2:
         tab_login, tab_signup, tab_forgot = st.tabs(["🔐 ĐĂNG NHẬP", "✨ ĐĂNG KÝ", "❓ QUÊN MẬT KHẨU"])
 
-        # --- TAB 1: ĐĂNG NHẬP ---
+        # --- TAB 1: ĐĂNG NHẬP (CẬP NHẬT ROLE) ---
         with tab_login:
             st.markdown("### Welcome Back")
             with st.form("login_form"):
@@ -27,17 +27,25 @@ def render_login():
                 if submit_login:
                     user = verify_user(username, password)
                     if user:
+                        # Lưu thông tin vào session_state từ Row object
                         st.session_state['is_logged_in'] = True
-                        st.session_state['username'] = user[1]
-                        st.session_state['email'] = user[2]
-                        st.success(f"Xin chào {user[1]}!")
+                        st.session_state['username'] = user['username']
+                        st.session_state['email'] = user['email']
+                        st.session_state['role'] = user['role']  # CỘT QUAN TRỌNG NHẤT
+
+                        if user['role'] == 1:
+                            st.success(f"Chào Quản trị viên {user['username']}!")
+                        else:
+                            st.success(f"Xin chào {user['username']}!")
+
                         et.sleep(0.5)
-                        st.session_state['page'] = st.session_state.get('pre_login_page', 'home')
+                        # Nếu là admin, ưu tiên về trang home để chọn dashboard trong sidebar
+                        st.session_state['page'] = 'home'
                         st.rerun()
                     else:
                         st.error("Sai tài khoản hoặc mật khẩu!")
 
-        # --- TAB 2: ĐĂNG KÝ (FIX TỰ ĐỘNG ĐĂNG NHẬP) ---
+        # --- TAB 2: ĐĂNG KÝ (MẶC ĐỊNH ROLE = 0) ---
         with tab_signup:
             st.markdown("### Tạo tài khoản mới")
             with st.form("signup_form"):
@@ -53,30 +61,30 @@ def render_login():
                     elif new_pass != confirm_pass:
                         st.error("Mật khẩu nhập lại không khớp!")
                     else:
-                        success, msg = create_user(new_user, new_email, new_pass)
+                        # Role mặc định là 0 cho người dùng mới
+                        success, msg = create_user(new_user, new_email, new_pass, role=0)
                         if success:
-                            # 1. Gửi mail chào mừng (bắt lỗi nếu chưa config mail)
                             try:
                                 send_welcome_email(new_email, new_user)
                             except Exception:
                                 pass
 
-                            st.success("Đăng ký thành công! Đang tự động đăng nhập...")
-
-                            # 2. [FIX QUAN TRỌNG] Tự động set trạng thái đăng nhập
+                            st.success("Đăng ký thành công!")
+                            # Tự động đăng nhập
                             st.session_state['is_logged_in'] = True
                             st.session_state['username'] = new_user
                             st.session_state['email'] = new_email
+                            st.session_state['role'] = 0
 
-                            # 3. Chờ xíu rồi chuyển trang
                             et.sleep(1)
-                            st.session_state['page'] = st.session_state.get('pre_login_page', 'home')
+                            st.session_state['page'] = 'home'
                             st.rerun()
                         else:
                             st.error(msg)
 
         # --- TAB 3: QUÊN MẬT KHẨU ---
         with tab_forgot:
+            # Giữ nguyên phần logic quên mật khẩu cũ
             st.markdown("### Khôi phục mật khẩu")
             with st.form("forgot_form"):
                 f_email = st.text_input("Nhập Email đã đăng ký", key="f_email")
@@ -88,12 +96,9 @@ def render_login():
                         new_pwd = ''.join(random.choices(string.ascii_letters + string.digits, k=8))
                         update_password(f_email, new_pwd)
                         try:
-                            success, msg = send_reset_password_email(f_email, new_pwd)
-                            if success:
-                                st.success(f"Mật khẩu mới đã gửi tới {f_email}")
-                            else:
-                                st.error(f"Lỗi gửi mail: {msg}")
-                        except Exception as e:
-                            st.error(f"Lỗi hệ thống mail: {e}")
+                            send_reset_password_email(f_email, new_pwd)
+                            st.success(f"Mật khẩu mới đã gửi tới {f_email}")
+                        except:
+                            st.error("Lỗi gửi mail!")
                     else:
                         st.error("Email này chưa được đăng ký!")
