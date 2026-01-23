@@ -3,145 +3,160 @@ import pandas as pd
 from config import EVENT_BANNERS
 from booking_and_voice_search.voice_controller import VoiceSearchController
 
+
 def render_home(service):
     # 1. Khởi tạo Voice Controller
-    # (Lưu ý: Nếu muốn tối ưu có thể truyền từ main vào, nhưng để ở đây cũng ổn)
     voice_controller = VoiceSearchController()
 
     # 2. HIỂN THỊ BANNER SLIDER
-    # HTML này phụ thuộc vào CSS trong styles.py/components.py.
-    # Hãy chắc chắn main.py đã gọi inject_custom_css()
     imgs_html = "".join([f'<div class="img-container"><img src="{url}"></div>' for url in EVENT_BANNERS])
     st.markdown(f"""
         <div class="slider-frame">
             <div class="slide-images">{imgs_html}</div>
-            <div style="position: absolute; top:0; left:0; width:100%; height:100%; background: linear-gradient(180deg, rgba(27,27,47,0.2) 0%, rgba(27,27,47,0) 50%, rgba(15,52,96,0.6) 100%); pointer-events: none;"></div>
+            <div class="slider-overlay"></div>
         </div>
     """, unsafe_allow_html=True)
 
-    # 3. XỬ LÝ VOICE INPUT (Tự động điền vào ô tìm kiếm)
+    # 3. XỬ LÝ VOICE INPUT
     listening_placeholder = st.empty()
     if st.session_state.get("fill_from_voice"):
         st.session_state["manual_search_input"] = st.session_state["voice_query"]
         st.session_state["fill_from_voice"] = False
 
     # 4. THANH TÌM KIẾM
-    st.markdown("<h3 style='margin-bottom: 20px; border-left: 5px solid #ff4b2b; padding-left: 15px; text-transform: uppercase; letter-spacing: 1px;'>🔥 Phim Đang Chiếu</h3>", unsafe_allow_html=True)
+    st.markdown("<h3 class='section-title'>🔥 Phim Đang Chiếu</h3>", unsafe_allow_html=True)
 
     c1, c2 = st.columns([3, 1.5])
     with c2:
         col_in, col_btn = st.columns([5, 1])
-        # Input tìm kiếm
-        search_query = col_in.text_input("Search", placeholder="🔍 Tìm tên phim...", key="manual_search_input", label_visibility="collapsed")
-        # Nút Mic
+        search_query = col_in.text_input(
+            "Search",
+            placeholder="🔍 Tìm tên phim...",
+            key="manual_search_input",
+            label_visibility="collapsed"
+        )
         with col_btn:
             if st.button("🎙️", key="mic_btn"):
                 listening_placeholder.info("🎧 Đang nghe...")
                 voice_text, error = voice_controller.get_voice_query()
                 listening_placeholder.empty()
                 if error:
-                    listening_placeholder.warning(error)
+                    st.toast(error, icon="⚠️")
                 else:
                     st.session_state["voice_query"] = voice_text
                     st.session_state["fill_from_voice"] = True
                     st.rerun()
 
-    # 5. LOGIC HIỂN THỊ: TÌM KIẾM HOẶC CAROUSEL
+    # 5. LOGIC HIỂN THỊ
 
-    # --- TRƯỜNG HỢP A: ĐANG TÌM KIẾM ---
     if search_query:
         with c1:
-            st.markdown(f"##### 🔎 Kết quả tìm kiếm cho: *'{search_query}'*")
-            # Service trả về DataFrame
-            recs = service.get_recommendations(search_query)
+            # GIẢ ĐỊNH: service.get_recommendations trả về (list_search, list_ai)
+            search_list, ai_list = service.get_recommendations(search_query)
 
-            if isinstance(recs, pd.DataFrame) and not recs.empty:
-                for _, row in recs.iterrows():
-                    with st.container(border=True):
-                        sc2, sc3 = st.columns([4, 1.5])
-                        with sc2:
-                            st.markdown(f"**{row['title']}**")
-                            # Xử lý genres để tránh lỗi nếu dữ liệu null
-                            genres = str(row['genres']).replace('|', ', ') if 'genres' in row else "N/A"
-                            rating = row['average_rating'] if 'average_rating' in row else 0.0
-                            st.caption(f"⭐ {rating:.1f} | {genres}")
-                        with sc3:
-                            st.write("") # Spacer căn chỉnh nút xuống dưới
-                            if st.button("Đặt vé", key=f"s_btn_{row['movieId']}"):
-                                st.session_state['selected_movie_id'] = row['movieId']
-                                st.session_state['selected_seats'] = []
-                                st.session_state['page'] = 'booking'
-                                st.rerun()
-            elif isinstance(recs, list) and recs:
-                st.warning(recs[0])
-            else:
-                st.info("Không tìm thấy phim phù hợp.")
+            # --- PHẦN 1: KẾT QUẢ TÌM KIẾM CHÍNH XÁC ---
+            if search_list:
+                st.markdown(f"#### 🎯 Kết quả tìm kiếm cho: *'{search_query}'*")
+                for movie in search_list:
+                    render_movie_card(movie, "search")
 
-    # --- TRƯỜNG HỢP B: KHÔNG TÌM KIẾM (HIỆN CAROUSEL) ---
+            # --- KẺ VẠCH NGĂN CÁCH ---
+            if search_list and ai_list:
+                st.divider()
+
+            # --- PHẦN 2: PHIM AI GỢI Ý ---
+            if ai_list:
+                st.markdown(f"#### ✨ Phim gợi ý tương tự")
+                for movie in ai_list:
+                    render_movie_card(movie, "ai")
+
+            if not search_list and not ai_list:
+                st.info("Không tìm thấy phim nào phù hợp với yêu cầu của bạn.")
+
     else:
-        # Service trả về List các Object Movie
-        movies = service.get_all_movies()
+        # --- TRƯỜNG HỢP B: HIỆN CAROUSEL (Dữ liệu mặc định) ---
+        render_carousel(service)
 
-        # Pagination Logic
-        items_per_slide = 5
-        total_movies = len(movies)
 
-        # Đảm bảo index nằm trong giới hạn
-        if 'movie_index' not in st.session_state: st.session_state['movie_index'] = 0
+# --- HELPER FUNCTION ĐỂ RENDER THẺ PHIM TRONG DANH SÁCH TÌM KIẾM ---
+def render_movie_card(movie, prefix):
+    # Defensive check cho dữ liệu thô
+    if hasattr(movie, 'rating'):
+        m_title, m_rating, m_genre, m_id = movie.title, movie.rating, movie.genre, movie.id
+    elif isinstance(movie, (list, tuple)):
+        m_id, m_title, m_genre, m_rating = movie[0], movie[1], movie[2], f"⭐ {movie[4]}"
+    else:
+        return
 
-        start_idx = st.session_state['movie_index']
-        # Fix lỗi nếu start_idx vượt quá số lượng phim (do lọc hoặc data thay đổi)
-        if start_idx >= total_movies: start_idx = 0
+    with st.container(border=True):
+        sc2, sc3 = st.columns([4, 1.5])
+        with sc2:
+            st.markdown(f"**{m_title}**")
+            st.caption(f"{m_rating} | {m_genre}")
+            if prefix == "ai":
+                st.markdown("<span style='font-size: 0.8rem; color: #00d4ff;'>AI Recommendation</span>",
+                            unsafe_allow_html=True)
+        with sc3:
+            if st.button("Đặt vé", key=f"{prefix}_btn_{m_id}"):
+                st.session_state['selected_movie_id'] = m_id
+                st.session_state['selected_seats'] = []
+                st.session_state['page'] = 'booking'
+                st.rerun()
 
-        end_idx = min(start_idx + items_per_slide, total_movies)
-        current_movies = movies[start_idx:end_idx]
 
-        col_prev, col_main, col_next = st.columns([0.5, 10, 0.5]) # Chỉnh lại tỉ lệ cột cho cân đối hơn
+# --- HELPER FUNCTION ĐỂ RENDER CAROUSEL ---
+def render_carousel(service):
+    movies = service.get_all_movies()
+    items_per_slide = 5
+    total_movies = len(movies)
 
-        # Nút Previous
-        with col_prev:
-            st.markdown("<br>"*8, unsafe_allow_html=True) # Căn giữa nút theo chiều dọc
-            if start_idx > 0:
-                if st.button("❮", key="prev"):
-                    st.session_state['movie_index'] = max(0, start_idx - items_per_slide)
-                    st.rerun()
+    if 'movie_index' not in st.session_state: st.session_state['movie_index'] = 0
+    start_idx = st.session_state['movie_index']
+    if start_idx >= total_movies: start_idx = 0
 
-        # Hiển thị List Phim
-        with col_main:
-            # Tạo lưới hiển thị phim (5 cột)
-            cols = st.columns(items_per_slide)
+    end_idx = min(start_idx + items_per_slide, total_movies)
+    current_movies = movies[start_idx:end_idx]
 
-            # Duyệt qua các cột, nếu phim ít hơn 5 thì các cột thừa sẽ trống
-            for i in range(items_per_slide):
-                with cols[i]:
-                    if i < len(current_movies):
-                        movie = current_movies[i]
-                        # RENDER CARD HTML
-                        # Class 'movie-container', 'movie-img-box' phải có trong styles.py
-                        st.markdown(f"""
-                            <div class="movie-container">
-                                <div class="movie-img-box">
-                                    <img src="{movie.poster}" onerror="this.src='https://placehold.co/400x600?text=No+Image'">
-                                </div>
-                                <div class="movie-title" title="{movie.title}">{movie.title}</div>
-                                <div class="movie-meta">
-                                    <span class="tag">{movie.genre.split(',')[0] if movie.genre else 'Phim'}</span>
-                                    <span style="float: right; color: #ffeb3b; font-weight: bold;">{movie.rating}</span>
-                                </div>
+    col_prev, col_main, col_next = st.columns([0.5, 10, 0.5])
+
+    with col_prev:
+        st.markdown("<br>" * 8, unsafe_allow_html=True)
+        if start_idx > 0 and st.button("❮", key="prev"):
+            st.session_state['movie_index'] = max(0, start_idx - items_per_slide)
+            st.rerun()
+
+    with col_main:
+        cols = st.columns(items_per_slide)
+        for i in range(items_per_slide):
+            with cols[i]:
+                if i < len(current_movies):
+                    m = current_movies[i]
+                    title = m.title if hasattr(m, 'title') else "Movie"
+                    poster = m.poster if hasattr(m, 'poster') else ""
+                    rating = m.rating if hasattr(m, 'rating') else "⭐ 0.0"
+
+                    st.markdown(f"""
+                        <div class="movie-container">
+                            <div class="movie-img-box">
+                                <img src="{poster}" onerror="this.src='https://placehold.co/400x600?text=No+Image'">
                             </div>
-                        """, unsafe_allow_html=True)
+                            <div class="movie-title">{title}</div>
+                            <div class="movie-meta">
+                                <span class="tag">Phim</span>
+                                <span style="float: right; color: #ffeb3b;">{rating}</span>
+                            </div>
+                        </div>
+                    """, unsafe_allow_html=True)
 
-                        st.write("") # Khoảng cách nhỏ giữa card và nút
-                        if st.button("ĐẶT VÉ", key=f"btn_{movie.id}", use_container_width=True):
-                            st.session_state['selected_movie_id'] = movie.id
-                            st.session_state['selected_seats'] = []
-                            st.session_state['page'] = 'booking'
-                            st.rerun()
+                    m_id = m.id if hasattr(m, 'id') else i
+                    if st.button("ĐẶT VÉ", key=f"btn_{m_id}", use_container_width=True):
+                        st.session_state['selected_movie_id'] = m_id
+                        st.session_state['selected_seats'] = []
+                        st.session_state['page'] = 'booking'
+                        st.rerun()
 
-        # Nút Next
-        with col_next:
-            st.markdown("<br>"*8, unsafe_allow_html=True)
-            if end_idx < total_movies:
-                if st.button("❯", key="next"):
-                    st.session_state['movie_index'] += items_per_slide
-                    st.rerun()
+    with col_next:
+        st.markdown("<br>" * 8, unsafe_allow_html=True)
+        if end_idx < total_movies and st.button("❯", key="next"):
+            st.session_state['movie_index'] += items_per_slide
+            st.rerun()

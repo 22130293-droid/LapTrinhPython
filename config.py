@@ -1,22 +1,25 @@
-# Cấu hình đường dẫn, hằng số
 import os
 
-# Đường dẫn file
-# Lưu ý: os.path.join giúp code chạy đúng cả trên Windows và Mac/Linux
-FILE_MOVIES = os.path.join("data", "movies.csv")
-FILE_SHOWTIMES = os.path.join("booking_and_voice_search", "data_structure.json")
-FILE_IMAGES = "movie_images.csv"
-DB_FILE = "users.db"
+# 1. Đường dẫn gốc của dự án (D:\Project python)
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
+# 2. Định nghĩa thư mục Data
+DATA_DIR = os.path.join(BASE_DIR, "data")
 
-# Tài khoản Test
-# TEST_USER = "admin"
-# TEST_PASS = "123"
-# CẤU HÌNH EMAIL
+# 3. Cấu hình các file trong thư mục data (Tuyệt đối hóa)
+FILE_MOVIES = os.path.join(DATA_DIR, "movies.csv")
+FILE_RATINGS = os.path.join(DATA_DIR, "ratings.csv")
+FILE_IMAGES = os.path.join(DATA_DIR, "movie_images.csv")
+DB_FILE = os.path.join(DATA_DIR, "users.db")
+
+# 4. Cấu hình file của module booking (Cập nhật đường dẫn tuyệt đối)
+# Giả sử thư mục booking_and_voice_search nằm ở thư mục gốc
+FILE_SHOWTIMES = os.path.join(BASE_DIR, "booking_and_voice_search", "data_structure.json")
+
+# --- GIỮ NGUYÊN PHẦN EMAIL VÀ UI ---
 EMAIL_SENDER = "huynhvansi02.02@gmail.com"
 EMAIL_PASSWORD = "ajtu lqjj pgkc udsb"
 
-# Hình ảnh
 POSTER_PLACEHOLDER = "https://placehold.co/400x600/png?text=No+Poster&font=roboto"
 EVENT_BANNERS = [
     "https://www.cgv.vn/media/banner/cache/1/b58515f018eb873dafa430b6f9ae0c1e/9/8/980x448_17__5.jpg",
