@@ -4,8 +4,8 @@ from email.mime.multipart import MIMEMultipart
 from config import EMAIL_SENDER, EMAIL_PASSWORD
 from booking_and_voice_search.qr_service import generate_ticket_qr_base64
 from email.mime.image import MIMEImage
-import smtplib
 import base64
+
 
 def send_email(to_email, subject, body):
     """Hàm gửi email cơ bản (Core function)"""
