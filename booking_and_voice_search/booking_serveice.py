@@ -1,5 +1,6 @@
 import json
 import os
+import uuid
 
 DATA_FILE = os.path.join("booking_and_voice_search", "data_structure.json")
 
@@ -15,7 +16,6 @@ def load_booking_data():
 
     with open(DATA_FILE, "r", encoding="utf-8") as f:
         return json.load(f)
-import uuid
 
 # 2 Kiểm tra ghế còn trống
 def check_availability(movie_id, date, time, seats):
@@ -31,13 +31,17 @@ def check_availability(movie_id, date, time, seats):
             .get("booked_seats", [])
     )
 
-    booked_seats = [b["seat"] for b in booked_objects]
+    booked_seats = [
+        b["seat"] if isinstance(b, dict) else b
+        for b in booked_objects
+    ]
 
     for seat in seats:
         if seat in booked_seats:
             return False
 
     return True
+
 
 
 # 3 Lưu booking
