@@ -11,8 +11,8 @@ sys.path.append(BASE_DIR)
 from core.database import set_admin_role
 from config import DB_FILE
 
-# 1. Nhập tên tài khoản bạn đã đăng ký trên giao diện
-username_can_cap_quyen = "@"  # Điền tên đăng ký của bạn vào đây
+# 1. Nhập tên tài khoản đã đăng ký trên giao diện
+username_can_cap_quyen = "trqutoan"  # Điền tên đăng ký của vào đây
 
 print(f"--- ĐANG CẤP QUYỀN ADMIN ---")
 try:

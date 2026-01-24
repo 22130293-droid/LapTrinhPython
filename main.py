@@ -6,6 +6,7 @@ from views.home_view import render_home
 from views.booking_view import render_booking
 from views.login_view import render_login
 from views.admin_view import render_admin_dashboard
+from views.profile_view import render_profile
 
 # --- 1. CẤU HÌNH TRANG (Phải là lệnh đầu tiên của Streamlit) ---
 st.set_page_config(
@@ -87,6 +88,8 @@ def main():
             st.session_state['page'] = 'home'
             st.rerun()
         render_booking(service)
+    elif st.session_state['page'] == 'profile':
+        render_profile(service)
 
     render_footer()
 

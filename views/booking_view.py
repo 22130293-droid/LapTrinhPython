@@ -5,8 +5,9 @@ from streamlit_extras.stylable_container import stylable_container
 from core.email_service import send_ticket_email
 from booking_and_voice_search.qr_service import generate_qr_url
 from booking_and_voice_search.booking_serveice import generate_booking_id
+
+
 def render_qr_overlay():
-    
     info = st.session_state.get("payment_info")
     if not info:
         return
@@ -20,11 +21,11 @@ def render_qr_overlay():
         info["booking_id"] = generate_booking_id(info["movie_id"])
 
     booking_id = info["booking_id"]
-    
+
     qr_image_url = generate_qr_url(
         amount=amount,
         movie_title=info["movie_title"],
-        booking_id = info["booking_id"]
+        booking_id=info["booking_id"]
     )
 
     @st.dialog("THANH TOÁN QR", width="small")
@@ -47,7 +48,7 @@ def render_qr_overlay():
             <b>Số tài khoản:</b> 5996&nbsp;5725&nbsp;212<br>
             <b>Chủ tài khoản:</b> TRAN VAN DONG<br>
             <i style="color:#aaa;">Quét QR để thanh toán</i>
-       
+
             </div>
             """,
             unsafe_allow_html=True
@@ -57,12 +58,13 @@ def render_qr_overlay():
 
         with col1:
             if st.button("ĐÃ THANH TOÁN", type="primary", use_container_width=True):
-
                 save_booking(
+                    st.session_state.get('user_id', 0),  # Thêm ID người dùng vào đây
                     info["movie_id"],
                     info["day"],
                     info["time"],
-                    seats
+                    seats,
+                    info["total_price"]
                 )
 
                 send_ticket_email(
@@ -73,7 +75,7 @@ def render_qr_overlay():
                     info["time"],
                     seats,
                     amount,
-                    booking_id 
+                    booking_id
                 )
 
                 st.session_state["show_qr"] = False
@@ -136,12 +138,12 @@ def render_booking(service):
     # KHỞI TẠO BIẾN GHẾ (Tránh lỗi nếu chưa có)
     if 'selected_seats' not in st.session_state:
         st.session_state['selected_seats'] = []
-        
+
     if 'show_qr' not in st.session_state:
         st.session_state['show_qr'] = False
 
     if st.session_state['show_qr']:
-        render_qr_overlay() 
+        render_qr_overlay()
         return
 
     # --- KIỂM TRA DỮ LIỆU PHIM ---
@@ -243,74 +245,143 @@ def render_booking(service):
                     else:
                         # 🔑 LƯU THÔNG TIN THANH TOÁN
                         st.session_state['payment_info'] = {
-                        "movie_id": movie.id,
-                        "movie_title": movie.title,
-                        "day": s_day,
-                        "time": s_time,
-                        "seats": seats,
-                        "total_price": total_price,
-                        "username": st.session_state.get('username', 'Khách hàng'),
-                        "email": st.session_state.get('email', '')
-                    }
+                            "movie_id": movie.id,
+                            "movie_title": movie.title,
+                            "day": s_day,
+                            "time": s_time,
+                            "seats": seats,
+                            "total_price": total_price,
+                            "username": st.session_state.get('username', 'Khách hàng'),
+                            "email": st.session_state.get('email', '')
+                        }
                         st.session_state['show_qr'] = True
                         st.rerun()
 
     with col_R:
-        # Sơ đồ màn hình
         st.markdown("""
             <div style="perspective: 600px; margin-bottom: 30px; text-align: center;">
-                <div style="width: 80%; margin: 0 auto; height: 5px; background: #51e1ed; box-shadow: 0 10px 30px rgba(81, 225, 237, 0.5); border-radius: 5px;"></div>
-                <div style="margin-top: 10px; color: #51e1ed; font-size: 10px; letter-spacing: 5px;">MÀN HÌNH</div>
+                <div style="width: 70%; margin: 0 auto; height: 6px; background: #e0e0e0; box-shadow: 0 15px 40px rgba(255,255,255,0.6); border-radius: 50%; transform: rotateX(-20deg);"></div>
+                <div style="margin-top: 15px; color: #888; font-size: 11px; letter-spacing: 4px;">MÀN HÌNH</div>
             </div>
         """, unsafe_allow_html=True)
 
         layout = service.get_seat_layout(movie.id, st.session_state['selected_date'], st.session_state['selected_time'])
 
+        # --- CONTAINER CHỨA GRID GHẾ ---
         with stylable_container(
                 key="seat_grid_fixed",
                 css_styles="""
+                /* 1. Target sâu vào nút để ép kích thước và flexbox */
                 div[data-testid="stButton"] button {
-                    width: 40px !important;
-                    height: 35px !important;
+                    width: 42px !important;    
+                    height: 38px !important;
                     padding: 0px !important;
-                    border-radius: 4px !important;
-                    font-size: 11px !important;
+                    border-radius: 6px !important;
+                    border: 1px solid rgba(255,255,255,0.3) !important;
+                    background-color: transparent !important;
+                    color: white !important;
+
+                    /* Flexbox để căn giữa chữ */
+                    display: flex !important;
+                    justify-content: center !important;
+                    align-items: center !important;
+                    margin: 0 auto !important; 
+                }
+
+                /* 2. Reset thẻ P bên trong nút để chữ không bị lệch */
+                div[data-testid="stButton"] button p {
+                    font-size: 12px !important;
                     font-weight: bold !important;
+                    margin: 0px !important;
+                    padding: 0px !important;
+                    line-height: 1 !important;
+                    transform: translateY(0px) !important;
+                }
+
+                /* Hover Effect */
+                div[data-testid="stButton"] button:hover {
+                    border-color: #ff4b2b !important;
+                    background-color: rgba(255, 255, 255, 0.2) !important;
+                    transform: scale(1.1);
+                    z-index: 10;
+                }
+
+                /* Disabled State */
+                div[data-testid="stButton"] button:disabled {
+                    background-color: #383838 !important;
+                    border: 1px solid #444 !important;
+                    color: #555 !important;
+                    cursor: not-allowed;
                 }
             """
         ):
-            _, seat_area, _ = st.columns([0.5, 9, 0.5])
+            # Layout [1 - 6 - 1] để ép toàn bộ khối ghế vào giữa
+            _, seat_area, _ = st.columns([1, 6, 1])
 
             with seat_area:
                 for r, row in enumerate(layout):
+                    # Gap="small" để các ghế sát nhau hơn
                     cols = st.columns(8, gap="small")
+
                     for c, status in enumerate(row):
                         seat_id = f"{chr(65 + r)}{c + 1}"
                         is_vip_seat = (chr(65 + r) in ['C', 'D', 'E']) and (3 <= (c + 1) <= 6)
 
                         with cols[c]:
-                            # # Logic hiển thị nút ghế
-                            btn_type = "secondary"
-                            is_disabled = False
+                            # --- GHẾ VIP ---
+                            if is_vip_seat:
+                                with stylable_container(
+                                        key=f"vip_{seat_id}",
+                                        css_styles="""
+                                    div[data-testid="stButton"] button { 
+                                        border: 2px solid #f1c40f !important; 
+                                        color: #f1c40f !important; 
+                                    }
+                                    div[data-testid="stButton"] button:hover {
+                                        box-shadow: 0 0 8px #f1c40f !important;
+                                    }
+                                """
+                                ):
+                                    if status == 1:
+                                        st.button(f"{seat_id}", key=seat_id, disabled=True)
+                                    elif seat_id in seats:
+                                        if st.button(f"{seat_id}", key=seat_id, type="primary"):
+                                            st.session_state['selected_seats'].remove(seat_id)
+                                            st.rerun()
+                                    else:
+                                        if st.button(f"{seat_id}", key=seat_id):
+                                            st.session_state['selected_seats'].append(seat_id)
+                                            st.rerun()
 
-                            if status == 1:
-                                st.button(f"{seat_id}", key=seat_id, disabled=True)
-                            elif seat_id in st.session_state['selected_seats']:
-                                # Nút đã chọn - màu xanh
-                                if st.button(f"{seat_id}", key=seat_id, type="primary"):
-                                    st.session_state['selected_seats'].remove(seat_id)
-                                    st.rerun()
+                            # --- GHẾ THƯỜNG ---
                             else:
-                                # Nút chưa chọn
-                                label = f"⭐{seat_id}" if is_vip_seat else seat_id
-                                if st.button(label, key=seat_id):
-                                    st.session_state['selected_seats'].append(seat_id)
-                                    st.rerun()
+                                if status == 1:
+                                    st.button(f"{seat_id}", key=seat_id, disabled=True)
+                                elif seat_id in seats:
+                                    # CSS cho ghế thường đang chọn (Xanh lá)
+                                    with stylable_container(
+                                            key=f"active_{seat_id}",
+                                            css_styles="""
+                                            div[data-testid="stButton"] button {
+                                                background-color: #2ecc71 !important;
+                                                border-color: #27ae60 !important;
+                                                box-shadow: 0 0 10px #2ecc71 !important;
+                                            }
+                                        """
+                                    ):
+                                        if st.button(f"{seat_id}", key=seat_id):
+                                            st.session_state['selected_seats'].remove(seat_id)
+                                            st.rerun()
+                                else:
+                                    if st.button(f"{seat_id}", key=seat_id):
+                                        st.session_state['selected_seats'].append(seat_id)
+                                        st.rerun()
 
         st.markdown("<br>", unsafe_allow_html=True)
-        # Chú thích
-        c1, c2, c3, c4 = st.columns(4)
-        c1.caption("⬜ Thường")
-        c2.caption("⭐ VIP")
-        c3.caption("⬛ Đã đặt")
-        c4.caption("🟦 Đang chọn")
+        _, note_area, _ = st.columns([1, 6, 1])
+        with note_area:
+            xc1, xc2, xc3, xc4 = st.columns(4)
+            with xc1: st.markdown("⬜ **Thường**")
+            with xc2: st.markdown("🟨 **VIP**")
+            with xc3: st.markdown("⬛ **Đã đặt**")
+            with xc4: st.markdown("🟢 **Đang chọn**")

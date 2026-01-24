@@ -95,7 +95,6 @@ def inject_custom_css():
         }
 
         /* --- CÁC THÀNH PHẦN KHÁC (Slider, Footer...) --- */
-        .slider-frame { overflow: hidden; width: 100%; aspect-ratio: 21/9; max-height: 550px; margin-bottom: 50px; border-radius: 20px; position: relative; box-shadow: 0 20px 50px rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.1); }
         .slide-images { width: 300%; height: 100%; display: flex; animation: slide_animation 18s infinite cubic-bezier(0.45, 0, 0.55, 1); }
         .img-container { width: 100%; height: 100%; position: relative; }
         .img-container img { width: 100%; height: 100%; object-fit: cover; object-position: center 20%; }
@@ -117,41 +116,42 @@ def inject_custom_css():
         </style>
     """, unsafe_allow_html=True)
 
+
 def render_header():
     with st.container():
-        st.markdown('<div class="header-container">', unsafe_allow_html=True)
-        # --- FIX HEADER BỊ GÃY ---
-        # Tinh chỉnh tỷ lệ cột: Giảm cột Logo (c1), tăng cột cho các nút (c2, c3, c4) để đủ chỗ hiển thị
-        c1, c2, c3, c4, c5 = st.columns([2.5, 1.2, 1.2, 1.2, 1.5])
 
-        with c1: st.markdown('<a href="#" class="logo">🍿 START CINEMA</a>', unsafe_allow_html=True)
+        # Chia lại tỷ lệ: Logo bên trái, 2 nút chức năng dạt về bên phải
+        c1, c2, c3 = st.columns([3, 1, 1.5])
 
-        with c2:
-            if st.button("TRANG CHỦ", key="nav_home"):
-                st.session_state['page'] = 'home'
-                st.rerun()
-        with c3: st.button("LỊCH CHIẾU", key="nav_event")
+        with c1:
+            st.markdown('<a href="#" class="logo">🍿 START CINEMA</a>', unsafe_allow_html=True)
 
-        with c4:
-            if st.button("THÀNH VIÊN", key="nav_member"):
-                if st.session_state.get('is_logged_in'):
-                    st.toast(f"Xin chào: {st.session_state['username']}")
-                else:
-                    st.session_state['pre_login_page'] = 'home'
-                    st.session_state['page'] = 'login'
-                    st.rerun()
 
-        with c5:
+        with c3:
+            # KIỂM TRA TRẠNG THÁI ĐĂNG NHẬP
             if st.session_state.get('is_logged_in'):
-                if st.button(f"Logout ({st.session_state['username']})", key="logout_btn"):
-                    st.session_state['is_logged_in'] = False
-                    st.session_state['username'] = ""
-                    st.rerun()
+                # Hiển thị Tên User dưới dạng Popover (Cửa sổ thả xuống)
+                with st.popover(f"👤 {st.session_state['username'].upper()}", use_container_width=True):
+                    st.markdown(f"**Xin chào, {st.session_state['username']}!**")
+
+                    # Ô 1: Nút Tài khoản
+                    if st.button("📂 THÔNG TIN TÀI KHOẢN", use_container_width=True, key="header_profile"):
+                        st.session_state['page'] = 'profile'
+                        st.rerun()
+
+                    # Ô 2: Nút Logout
+                    if st.button("🚪 ĐĂNG XUẤT", use_container_width=True, key="header_logout"):
+                        st.session_state['is_logged_in'] = False
+                        st.session_state['username'] = ""
+                        st.session_state['page'] = 'home'
+                        st.rerun()
             else:
-                if st.button("🔐 ĐĂNG NHẬP", key="login_btn_header"):
-                    st.session_state['pre_login_page'] = 'home'
+                # Nếu chưa đăng nhập thì hiện nút Đăng nhập bình thường
+                if st.button("🔐 ĐĂNG NHẬP", key="login_btn_header", use_container_width=True):
+                    st.session_state['pre_login_page'] = st.session_state.get('page', 'home')
                     st.session_state['page'] = 'login'
                     st.rerun()
+
         st.markdown('</div>', unsafe_allow_html=True)
 
 def render_footer():
@@ -182,3 +182,4 @@ def render_footer():
             </div>
         </div>
     """, unsafe_allow_html=True)
+
