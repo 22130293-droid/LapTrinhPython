@@ -8,8 +8,8 @@ ACCOUNT_NO = "59965725212"
 ACCOUNT_NAME = "TRAN VAN DONG"
 
 @staticmethod
-def generate_qr_url(amount, movie_title):
-    add_info = f"Thanh toan ve {movie_title}".replace(" ", "%20")
+def generate_qr_url(amount, movie_title,booking_id):
+    add_info = f"Thanh toan ve {movie_title} | Ma ve {booking_id}".replace(" ", "%20")
 
     return (
         f"https://img.vietqr.io/image/"
