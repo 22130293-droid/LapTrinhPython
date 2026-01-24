@@ -94,6 +94,36 @@ class CinemaService:
                 return _create_movie_from_row(row.iloc[0])
         return None
 
+    # Thêm vào class MovieService trong core/services.py
+    def get_personalized_recommendations(self, user_id, num_recommendations=10):
+        from booking_and_voice_search.booking_serveice import get_user_history_json
+
+        # 1. Lấy lịch sử đặt vé của user
+        history = get_user_history_json(user_id)
+
+        if not history:
+            # Nếu chưa mua vé nào, gợi ý phim có điểm cao nhất (Top Trending)
+            return self.full_df.sort_values(by='average_rating', ascending=False).head(num_recommendations)
+
+        # 2. Lấy danh sách các movieId đã đặt (không trùng lặp)
+        booked_movie_ids = list(set([int(t['movie_id']) for t in history]))
+
+        # 3. Gọi module AI để lấy danh sách gợi ý
+        # Giả sử recommender của ông có hàm get_recommendations_multiple
+        try:
+            from movie_recommender_ai_module.recommender import ContentBasedRecommender
+            recommender = ContentBasedRecommender(self.full_df)
+
+            # Lấy gợi ý dựa trên bộ phim cuối cùng họ mua (hoặc tất cả)
+            last_movie_id = booked_movie_ids[-1]
+            recommended_ids = recommender.get_recommendations(last_movie_id, top_n=num_recommendations)
+
+            # Lọc ra thông tin phim từ full_df
+            return self.full_df[self.full_df['movieId'].isin(recommended_ids)]
+        except Exception as e:
+            print(f"AI Error: {e}")
+            return self.full_df.head(num_recommendations)
+
     def get_recommendations(self, movie_title, top_n=10):
         """Trả về tuple: (Danh sách phim tìm thấy, Danh sách phim AI gợi ý)"""
         if self.recommender is None or self.full_df.empty:
@@ -112,7 +142,7 @@ class CinemaService:
             else:
                 raw_result = self.recommender.recommend(movie_title, top_n=top_n)
 
-            # Chuyển đổi kết quả AI thành list Movie (giống logic cũ tui đã viết cho ông)
+            # Chuyển đổi kết quả AI thành list Movie
             if isinstance(raw_result, pd.DataFrame):
                 ai_recs = [_create_movie_from_row(row) for _, row in raw_result.iterrows()]
             elif isinstance(raw_result, list):
@@ -127,15 +157,26 @@ class CinemaService:
         return search_results, ai_recs
 
     def get_seat_layout(self, m_id, d, t):
+        from booking_and_voice_search.booking_serveice import load_booking_data
         data = load_booking_data()
         m_id = str(m_id)
-        booked = data.get("movies", {}).get(m_id, {}).get("showtimes", {}).get(d, {}).get(t, {}).get("booked_seats", [])
-        return [[1 if f"{chr(65 + r)}{c + 1}" in booked else 0 for c in range(8)] for r in range(6)]
+
+        # 1. Lấy danh sách thô (List of Dicts) từ JSON
+        raw_booked = data.get("movies", {}).get(m_id, {}).get("showtimes", {}).get(d, {}).get(t, {}).get("booked_seats",
+                                                                                                         [])
+
+        # 2. TRÍCH XUẤT: Chuyển list Dict thành list String (chỉ lấy mã ghế)
+        # Nếu b là dict thì lấy b["seat"], nếu đã là string thì giữ nguyên
+        booked_codes = [b["seat"] if isinstance(b, dict) else b for b in raw_booked]
+
+        # 3. SO SÁNH: Bây giờ lệnh 'in' sẽ hoạt động chuẩn xác
+        return [[1 if f"{chr(65 + r)}{c + 1}" in booked_codes else 0 for c in range(8)] for r in range(6)]
 
 
 class AdminService:
     def __init__(self, full_df):
         self.df = full_df
+        self.json_path = os.path.join("booking_and_voice_search", "data_structure.json")
 
     def get_genre_distribution(self):
         if self.df.empty: return pd.Series()
@@ -148,13 +189,34 @@ class AdminService:
         temp_df['rating_round'] = temp_df['average_rating'].round()
         return temp_df['rating_round'].value_counts().sort_index()
 
-    def get_revenue_stats(self):
-        booking_data = load_booking_data()
-        total_booked = 0
-        movies_data = booking_data.get("movies", {})
-        for m_id in movies_data:
-            showtimes = movies_data[m_id].get("showtimes", {})
-            for day in showtimes:
-                for time in showtimes[day]:
-                    total_booked += len(showtimes[day][time].get("booked_seats", []))
-        return total_booked * 120000
+    def get_booking_stats(self):
+        data = load_booking_data()
+        total_revenue = 0
+        total_tickets = 0
+        movie_summary = []
+        daily_summary = {}
+
+        movies = data.get("movies", {})
+        for m_id, m_data in movies.items():
+            m_rev, m_tix = 0, 0
+            showtimes = m_data.get("showtimes", {})
+            for date, times in showtimes.items():
+                if date not in daily_summary:
+                    daily_summary[date] = {"revenue": 0, "tickets": 0}
+
+                for time, slot in times.items():
+                    booked = slot.get("booked_seats", [])
+                    for ticket in booked:
+                        price = ticket.get("price", 105000)
+                        total_revenue += price
+                        m_rev += price
+                        total_tickets += 1
+                        m_tix += 1
+                        # Gom nhóm theo ngày
+                        daily_summary[date]["revenue"] += price
+                        daily_summary[date]["tickets"] += 1
+
+            if m_tix > 0:
+                movie_summary.append({"movie_id": m_id, "tickets": m_tix, "revenue": m_rev})
+
+        return total_revenue, total_tickets, movie_summary, daily_summary

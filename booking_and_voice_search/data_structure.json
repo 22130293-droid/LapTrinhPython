@@ -1,1 +1,218 @@
-{}
+{
+  "movies": {
+    "1": {
+      "showtimes": {
+        "2026-01-23": {
+          "11:00": {
+            "booked_seats": [
+              {
+                "booking_id": "SC-1-OLD1",
+                "user_id": 1,
+                "seat": "A1",
+                "price": 105000.0,
+                "status": "BOOKED",
+                "created_at": "11:00"
+              },
+              {
+                "booking_id": "SC-1-OLD2",
+                "user_id": 3,
+                "seat": "A2",
+                "price": 105000.0,
+                "status": "BOOKED",
+                "created_at": "11:00"
+              }
+            ]
+          }
+        },
+        "2026-01-24": {
+          "14:00": {
+            "booked_seats": [
+              {
+                "booking_id": "SC-1-OLD3",
+                "user_id": 1,
+                "seat": "B1",
+                "price": 105000.0,
+                "status": "BOOKED",
+                "created_at": "14:00"
+              }
+            ]
+          }
+        },
+        "2026-01-25": {
+          "11:00": {
+            "booked_seats": [
+              {
+                "booking_id": "SC-1-154E0DEF",
+                "user_id": 0,
+                "seat": "A1",
+                "price": 105000.0,
+                "status": "BOOKED",
+                "created_at": "11:00"
+              },
+              {
+                "booking_id": "SC-1-E9EB2D03",
+                "user_id": 0,
+                "seat": "A2",
+                "price": 105000.0,
+                "status": "BOOKED",
+                "created_at": "11:00"
+              }
+            ]
+          }
+        },
+        "Hôm nay": {
+          "09:30": {
+            "booked_seats": [
+              {
+                "booking_id": "SC-1-49C5B229",
+                "user_id": 0,
+                "seat": "A1",
+                "price": 105000.0,
+                "status": "BOOKED",
+                "created_at": "09:30"
+              },
+              {
+                "booking_id": "SC-1-309E551D",
+                "user_id": 0,
+                "seat": "A2",
+                "price": 105000.0,
+                "status": "BOOKED",
+                "created_at": "09:30"
+              },
+              {
+                "booking_id": "SC-1-976AA541",
+                "user_id": 0,
+                "seat": "A3",
+                "price": 105000.0,
+                "status": "BOOKED",
+                "created_at": "09:30"
+              },
+              {
+                "booking_id": "SC-1-923F527A",
+                "user_id": 0,
+                "seat": "A4",
+                "price": 105000.0,
+                "status": "BOOKED",
+                "created_at": "09:30"
+              },
+              {
+                "booking_id": "SC-1-336AB842",
+                "user_id": 0,
+                "seat": "A5",
+                "price": 105000.0,
+                "status": "BOOKED",
+                "created_at": "09:30"
+              },
+              {
+                "booking_id": "SC-1-53D28A2F",
+                "user_id": 0,
+                "seat": "A6",
+                "price": 105000.0,
+                "status": "BOOKED",
+                "created_at": "09:30"
+              },
+              {
+                "booking_id": "SC-1-89D66042",
+                "user_id": 0,
+                "seat": "A7",
+                "price": 105000.0,
+                "status": "BOOKED",
+                "created_at": "09:30"
+              },
+              {
+                "booking_id": "SC-1-893B78D1",
+                "user_id": 0,
+                "seat": "A8",
+                "price": 105000.0,
+                "status": "BOOKED",
+                "created_at": "09:30"
+              }
+            ]
+          }
+        }
+      }
+    },
+    "2": {
+      "showtimes": {
+        "2026-01-23": {
+          "19:00": {
+            "booked_seats": [
+              {
+                "booking_id": "SC-2-OLD4",
+                "user_id": 4,
+                "seat": "C1",
+                "price": 105000.0,
+                "status": "BOOKED",
+                "created_at": "19:00"
+              },
+              {
+                "booking_id": "SC-2-OLD5",
+                "user_id": 1,
+                "seat": "C2",
+                "price": 105000.0,
+                "status": "BOOKED",
+                "created_at": "19:00"
+              },
+              {
+                "booking_id": "SC-2-OLD6",
+                "user_id": 0,
+                "seat": "C3",
+                "price": 105000.0,
+                "status": "BOOKED",
+                "created_at": "19:00"
+              }
+            ]
+          }
+        },
+        "2026-01-25": {
+          "19:00": {
+            "booked_seats": [
+              {
+                "booking_id": "SC-2-22DC353B",
+                "user_id": 0,
+                "seat": "C3",
+                "price": 105000.0,
+                "status": "BOOKED",
+                "created_at": "19:00"
+              },
+              {
+                "booking_id": "SC-2-1678A77A",
+                "user_id": 0,
+                "seat": "C4",
+                "price": 105000.0,
+                "status": "BOOKED",
+                "created_at": "19:00"
+              }
+            ]
+          }
+        }
+      }
+    },
+    "3": {
+      "showtimes": {
+        "2026-01-24": {
+          "09:30": {
+            "booked_seats": [
+              {
+                "booking_id": "SC-3-OLD7",
+                "user_id": 3,
+                "seat": "D1",
+                "price": 105000.0,
+                "status": "BOOKED",
+                "created_at": "09:30"
+              },
+              {
+                "booking_id": "SC-3-OLD8",
+                "user_id": 4,
+                "seat": "D2",
+                "price": 105000.0,
+                "status": "BOOKED",
+                "created_at": "09:30"
+              }
+            ]
+          }
+        }
+      }
+    }
+  }
+}
