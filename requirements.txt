@@ -10,6 +10,9 @@ requests
 
 # --- Thư viện Voice AI & Booking (Thành viên 2) ---
 openai-whisper
+qrcode
+SpeechRecognition
+
 # Nếu module Voice của bạn dùng thư viện gTTS hoặc SpeechRecognition, hãy thêm vào đây:
 # gTTS
 # SpeechRecognition
