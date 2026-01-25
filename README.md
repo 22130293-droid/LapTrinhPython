@@ -17,36 +17,9 @@ Dự án cuối khóa môn học Lập trình Python.
 
 ## ✨ Tính năng chính
 - Đăng ký/Đăng nhập & Phân quyền User/Admin.
-- Gợi ý phim thông minh (Content-based Filtering).
-- Đặt vé trực tuyến với Voice Search.
+- Gợi ý phim thông minh (Content-based Filtering). dựa trên từ khóa tìm kiếm hoặc lịch sử mua vé
+- Tìm Kiếm với Voice Search.
 - Dashboard thống kê dữ liệu dành cho quản trị viên.
+- Mua vé dễ dàng với thao tác đặt ghế và qr nhận vé gửi về mail.
 
-Phân công:
-Thành viên 1
-AI Data Specialist
-- Tiền xử lý dữ liệu MovieLens (Clean data).
-- Xây dựng thuật toán Recommender System (Content-based).
-- Viết hàm tìm kiếm phim theo từ khóa/thể loại.
-- Tích hợp module gợi ý phim vào ứng dụng (app.py)
-Thành viên 2
-Backend & Voice Engineer
-- Tích hợp Whisper AI để xử lý âm thanh.
-- Thiết kế cấu trúc file JSON.
-- Viết các hàm logic Backend: load_data(), save_booking(), check_availability().
-Thành viên 3
-Frontend Developer 
-- Xây dựng giao diện Web bằng Streamlit.(
-   + Tạo môi trường ảo mới: python -m venv venv
-   + Kích hoạt môi trường: .\venv\Scripts\activate
-   + Run: streamlit run app.py
-)
-- Cài đặt thư viện SpeechRecognition.(
-   + pip install SpeechRecognition
-)
-- Cài đặt thư viện streamlit-extras. (
-  + pip install streamlit-extras
-)
-- Thiết kế UI sơ đồ ghế ngồi (Grid layout).
-- Tích hợp code của TV2 vào ứng dụng chính (app.py).
-- Tìm kiếm hình ảnh/poster phim để làm đẹp giao diện.
 
