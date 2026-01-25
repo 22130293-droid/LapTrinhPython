@@ -1,98 +1,8 @@
 import streamlit as st
 import time as et
-from booking_and_voice_search.booking_serveice import check_availability, save_booking
+from booking_and_voice_search.booking_serveice import check_availability
 from streamlit_extras.stylable_container import stylable_container
-from core.email_service import send_ticket_email
-from booking_and_voice_search.qr_service import generate_qr_url
-from booking_and_voice_search.booking_serveice import generate_booking_id
-
-
-def render_qr_overlay():
-    info = st.session_state.get("payment_info")
-    if not info:
-        return
-
-    seats = info.get("seats", [])
-    if not isinstance(seats, list):
-        seats = [str(seats)]
-
-    amount = int(info["total_price"])
-    if "booking_id" not in info:
-        info["booking_id"] = generate_booking_id(info["movie_id"])
-
-    booking_id = info["booking_id"]
-
-    qr_image_url = generate_qr_url(
-        amount=amount,
-        movie_title=info["movie_title"],
-        booking_id=info["booking_id"]
-    )
-
-    @st.dialog("THANH TOÁN QR", width="small")
-    def qr_popup():
-
-        st.markdown("""
-        <style>
-        section[data-testid="stDialog"] {
-            border-radius: 18px;
-        }
-        </style>
-        """, unsafe_allow_html=True)
-
-        st.markdown(
-            f"""
-            <div style="text-align:center">
-                <img src="{qr_image_url}"
-                     style="width:220px;margin:15px auto;display:block;" />
-            <b>Ngân hàng:</b> TPBank<br>
-            <b>Số tài khoản:</b> 5996&nbsp;5725&nbsp;212<br>
-            <b>Chủ tài khoản:</b> TRAN VAN DONG<br>
-            <i style="color:#aaa;">Quét QR để thanh toán</i>
-
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
-
-        _, col1, col2, _ = st.columns([1, 2, 2, 1])
-
-        with col1:
-            if st.button("ĐÃ THANH TOÁN", type="primary", use_container_width=True):
-                save_booking(
-                    st.session_state.get('user_id', 0),  # Thêm ID người dùng vào đây
-                    info["movie_id"],
-                    info["day"],
-                    info["time"],
-                    seats,
-                    info["total_price"]
-                )
-
-                send_ticket_email(
-                    info.get("email", ""),
-                    info.get("username", "Khách hàng"),
-                    info["movie_title"],
-                    info["day"],
-                    info["time"],
-                    seats,
-                    amount,
-                    booking_id
-                )
-
-                st.session_state["show_qr"] = False
-                st.session_state.pop("payment_info", None)
-                st.session_state["selected_seats"] = []
-
-                st.success(" Thanh toán thành công!")
-                st.rerun()
-
-        with col2:
-            if st.button("HỦY", type="primary", use_container_width=True):
-                st.session_state["show_qr"] = False
-                st.session_state.pop("payment_info", None)
-                st.rerun()
-
-    qr_popup()
-
+from views.qr_view import render_qr_overlay
 
 def inject_custom_css():
     st.markdown("""
@@ -105,9 +15,25 @@ def inject_custom_css():
             font-family: 'Montserrat', sans-serif; 
         }
 
-        h1, h2, h3, h4, h5, h6 { color: #FFFFFF !important; text-shadow: 0 4px 6px rgba(0,0,0,0.3); font-weight: 800 !important; }
-        p, span, div, label { color: #e0e0e0; }
+        h1, h2, h3, h4, h5, h6 {
+            color: #FFFFFF !important;
+            text-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            font-weight: 800 !important;
+        }
+        p,span, label {
+            color: #e0e0e0;
+        }
+        
+        div{
+            color: #000000;
+        }
+        
+        section[data-testid="stDialog"] p {
+            text-align: center !important;
+            font-weight: 800;
+        }
 
+        
         div[data-baseweb="select"] > div {
             color: #000000 !important;
             background-color: #ffffff !important;
@@ -126,6 +52,7 @@ def inject_custom_css():
             box-shadow: 0 4px 15px rgba(229, 45, 39, 0.4);
             min-height: 45px; 
         }
+        
         </style>
     """, unsafe_allow_html=True)
 
@@ -182,6 +109,7 @@ def render_booking(service):
                         <p style="margin: 5px 0; font-size: 12px; color: #aaa;">⏱ {movie.duration} | 🎭 {movie.genre}</p>
                     </div>
                 </div>
+            
             </div>
         """, unsafe_allow_html=True)
 
@@ -218,14 +146,14 @@ def render_booking(service):
         <div style="background: white; color: #333; padding: 20px; border-radius: 15px; margin-top: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.2);">
             <div style="text-align: center; font-weight: 800; letter-spacing: 2px; font-size: 14px; margin-bottom: 15px; color: #16213e;">THÔNG TIN VÉ</div>
             <div style="display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 13px;">
-                <span style="color:#666;">Phim:</span><strong>{movie.title[:20]}</strong>
+                <span style="color:#000000;">Phim:</span><strong>{movie.title[:20]}</strong>
             </div>
             <div style="display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 13px;">
-                <span style="color:#666;">Ghế:</span><strong>{', '.join(seats) if count else '--'}</strong>
+                <span style="color:#000000;">Ghế:</span><strong>{', '.join(seats) if count else '--'}</strong>
             </div>
             <hr style="border-top: 1px dashed #ccc; margin: 15px 0;">
             <div style="display: flex; justify-content: space-between; font-size: 20px; font-weight: 800;">
-                <span>TỔNG:</span><span style="color: #d63031;">{total_price:,.0f}đ</span>
+                <span style="color: #000000;">TỔNG:</span><span style="color: #d63031;">{total_price:,.0f}đ</span>
             </div>
         </div>
         """, unsafe_allow_html=True)
@@ -280,6 +208,7 @@ def render_booking(service):
                     border: 1px solid rgba(255,255,255,0.3) !important;
                     background-color: transparent !important;
                     color: white !important;
+                    # text-align:center;
 
                     /* Flexbox để căn giữa chữ */
                     display: flex !important;
